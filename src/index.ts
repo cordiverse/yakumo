@@ -3,6 +3,8 @@ import globby from 'globby'
 import ts from 'typescript'
 import ora from 'ora'
 import prompts from 'prompts'
+import yaml from 'js-yaml'
+import fs from 'fs'
 
 export const cwd = process.cwd()
 export const meta: PackageJson = require(cwd + '/package.json')
@@ -10,13 +12,19 @@ export const meta: PackageJson = require(cwd + '/package.json')
 export interface Config {
   mode?: 'monorepo' | 'separate' | 'submodule'
   concurrency?: number
+  aliases?: Record<string, string>
 }
 
 export const config: Config = {
   mode: 'monorepo',
   concurrency: 10,
-  ...meta['yakumo'],
+  aliases: {},
 }
+
+try {
+  const source = fs.readFileSync(cwd + '/yakumo.yml', 'utf8')
+  Object.assign(config, yaml.load(source))
+} catch {}
 
 export function requireSafe(id: string) {
   try {
@@ -64,8 +72,11 @@ export async function getPackages(args: readonly string[], options: FallbackOpti
   const workspaces = options.workspaces || await getWorkspaces()
   if (!args.length) return workspaces
 
-  const privates: string[] = []
-  const result = Object.fromEntries(args.map((name) => {
+  function locate(name: string) {
+    if (config.aliases[name]) {
+      return config.aliases[name]
+    }
+
     const targets = Object.keys(workspaces).filter((folder) => {
       const [last] = folder.split('/').reverse()
       return name === last
@@ -75,9 +86,12 @@ export async function getPackages(args: readonly string[], options: FallbackOpti
     } else if (targets.length > 1) {
       throw new Error(`ambiguous workspace "${name}": ${targets.join(', ')}`)
     }
-    const path = targets[0]
+    return targets[0]
+  }
+
+  const result = Object.fromEntries(args.map((name) => {
+    const path = locate(name)
     const meta = workspaces[path]
-    if (meta.private) privates.push(path)
     return [path, meta] as const
   }))
 
