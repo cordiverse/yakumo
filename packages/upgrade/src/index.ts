@@ -6,7 +6,7 @@ import latest from 'latest-version'
 import pMap from 'p-map'
 import ora from 'ora'
 
-addHook('dep', async (project) => {
+addHook('command/upgrade', async (project) => {
   const { targets, manager } = project
   const deps: Record<string, Record<string, DependencyType[]>> = {}
   for (const path in targets) {

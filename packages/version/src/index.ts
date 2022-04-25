@@ -119,7 +119,7 @@ class Graph {
 // .option('-p, --prerelease', '')
 // .option('-v, --version <ver>', '')
 // .option('-r, --recursive', '')
-addHook('bump', async (project) => {
+addHook('command/version', async (project) => {
   const options = {}
   const graph = new Graph(project, options)
 

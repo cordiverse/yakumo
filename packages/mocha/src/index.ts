@@ -2,7 +2,7 @@ import { addHook } from 'yakumo'
 import Mocha from 'mocha'
 import globby from 'globby'
 
-addHook('mocha', async ({ targets, cwd }) => {
+addHook('command/mocha', async ({ targets, cwd }) => {
   const patterns = Object
     .keys(targets)
     .map(folder => `${folder}/tests/*.spec.ts`.slice(1))

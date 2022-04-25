@@ -27,7 +27,7 @@ function publish(agent: string, path: string, name: string, version: string, tag
   ])
 }
 
-addHook('publish', async (project) => {
+addHook('command/publish', async (project) => {
   const { args, targets } = project
   const spinner = ora()
   if (args.length) {

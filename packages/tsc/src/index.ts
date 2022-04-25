@@ -8,7 +8,7 @@ interface Node {
   next?: Set<string>
 }
 
-addHook('tsc', async (project) => {
+addHook('command/tsc', async (project) => {
   const { targets } = project
   const nodes: Record<string, Node> = {}
   for (const path in targets) {

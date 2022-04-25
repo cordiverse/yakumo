@@ -1,7 +1,7 @@
 {
-  "name": "yakumo-version",
+  "name": "yakumo-esbuild",
   "description": "Manage complex workspaces with ease",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "engines": {
@@ -25,18 +25,13 @@
     "workspace",
     "cli",
     "script",
-    "publish",
-    "version",
-    "bump"
+    "esbuild",
+    "build"
   ],
   "peerDependencies": {
     "yakumo": "^0.1.0"
   },
-  "devDependencies": {
-    "@types/semver": "^7.3.9"
-  },
   "dependencies": {
-    "kleur": "^4.1.4",
-    "semver": "^7.3.5"
+    "esbuild": "^0.14.38"
   }
 }

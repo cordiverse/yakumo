@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { cwd, Project } from '.'
+import { cwd, Project, hooks, requireSafe } from '.'
 
 if (process.argv.length <= 2) {
   console.log('yakumo')
@@ -9,13 +9,14 @@ if (process.argv.length <= 2) {
 
 const command = process.argv[2]
 
-try {
-  require(cwd + '/scripts/' + command)
-  require('yakumo-' + command)
-} catch {}
+requireSafe(cwd + '/build/' + command)
+requireSafe('yakumo-' + command)
 
-(async () => {
+;(async () => {
   const project = new Project(process.argv.slice(3))
   await project.initialize()
-  return project.emit(command)
+  if (!hooks['command/' + command]) {
+    throw new Error(`unknown command: "${command}"`)
+  }
+  return project.emit('command/' + command, project)
 })()

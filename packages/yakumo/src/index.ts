@@ -123,8 +123,8 @@ export class Project {
     return targets[0]
   }
 
-  async emit(name: string) {
-    return hooks[name]?.(this)
+  async emit(name: string, ...args: any) {
+    await Promise.all((hooks[name] || []).map((callback) => callback(...args)))
   }
 
   async save(path: string) {
@@ -132,10 +132,16 @@ export class Project {
   }
 }
 
-export const hooks: Record<string, (project: Project) => void> = {}
+type CommandHooks = {
+  [K in `command/${string}`]: (project: Project) => void
+}
 
-export function addHook(name: string, callback: (project: Project) => void) {
-  hooks[name] = callback
+export interface Hooks extends CommandHooks {}
+
+export const hooks: { [K in keyof Hooks]: Hooks[K][] } = {}
+
+export function addHook<K extends keyof Hooks>(name: K, callback: Hooks[K]) {
+  (hooks[name] ||= []).push(callback)
 }
 
 export type DependencyType = 'dependencies' | 'devDependencies' | 'peerDependencies' | 'optionalDependencies'
