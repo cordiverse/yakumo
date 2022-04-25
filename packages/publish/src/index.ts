@@ -1,6 +1,5 @@
-import { addHook, exit, spawnAsync } from '.'
+import { addHook, exit, spawnAsync } from 'yakumo'
 import { gt, prerelease } from 'semver'
-import which from 'which-pm-runs'
 import latest from 'latest-version'
 import ora from 'ora'
 import prompts from 'prompts'
@@ -62,7 +61,7 @@ addHook('publish', async (project) => {
     spinner.succeed()
   }
 
-  const agent = which()?.name || 'npm'
+  const agent = project.manager?.name || 'npm'
   for (const path in targets) {
     const { name, version } = targets[path]
     project.emit('publish-item')

@@ -1,7 +1,7 @@
 import { writeFile } from 'fs-extra'
 import { gt, SemVer } from 'semver'
 import { cyan, green } from 'kleur'
-import { addHook, cwd, PackageJson, Project } from '.'
+import { addHook, cwd, PackageJson, Project } from 'yakumo'
 
 const bumpTypes = ['major', 'minor', 'patch', 'prerelease', 'version'] as const
 type BumpType = typeof bumpTypes[number]

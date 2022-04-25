@@ -5,6 +5,7 @@ import ora from 'ora'
 import prompts from 'prompts'
 import yaml from 'js-yaml'
 import fs from 'fs'
+import which from 'which-pm-runs'
 import { writeJSON } from 'fs-extra'
 import { Module } from 'module'
 
@@ -57,15 +58,22 @@ export function exit(message: string) {
   return process.exit(0)
 }
 
+export interface Manager {
+  name: string
+  version: string
+}
+
 export class Project {
   cwd: string
   config: Config
+  manager: Manager
   targets: Record<string, PackageJson>
   workspaces: Record<string, PackageJson>
 
   constructor(public args: readonly string[]) {
     this.cwd = cwd
     this.config = config
+    this.manager = which()
   }
 
   async initialize() {
