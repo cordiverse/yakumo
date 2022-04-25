@@ -1,0 +1,35 @@
+{
+  "name": "yakumo-tsc",
+  "description": "Manage complex workspaces with ease",
+  "version": "0.2.0",
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
+  "engines": {
+    "node": ">=12.0.0"
+  },
+  "files": [
+    "lib"
+  ],
+  "author": "Shigma <shigma10826@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cosmotype/yakumo.git"
+  },
+  "bugs": {
+    "url": "https://github.com/cosmotype/yakumo/issues"
+  },
+  "homepage": "https://github.com/cosmotype/yakumo",
+  "keywords": [
+    "monorepo",
+    "workspace",
+    "cli",
+    "script",
+    "tsc",
+    "compile",
+    "typescript"
+  ],
+  "peerDependencies": {
+    "yakumo": "^0.1.0"
+  }
+}

@@ -128,7 +128,7 @@ export class Project {
   }
 
   async save(path: string) {
-    await writeJSON(`${cwd}${path}/package.json`, this.workspaces[path])
+    await writeJSON(`${cwd}${path}/package.json`, this.workspaces[path], { spaces: 2 })
   }
 }
 
