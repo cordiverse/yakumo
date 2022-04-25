@@ -48,7 +48,7 @@ register('upgrade', async (project) => {
 
   for (const path in targets) {
     if (!targets[path].$dirty) continue
-    project.save(path)
+    await project.save(path)
   }
 
   console.log(output.sort().join('\n'))
