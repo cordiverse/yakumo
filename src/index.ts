@@ -5,6 +5,8 @@ import ora from 'ora'
 import prompts from 'prompts'
 import yaml from 'js-yaml'
 import fs from 'fs'
+import { writeJSON } from 'fs-extra'
+import { Module } from 'module'
 
 export const cwd = process.cwd()
 export const meta: PackageJson = require(cwd + '/package.json')
@@ -12,19 +14,27 @@ export const meta: PackageJson = require(cwd + '/package.json')
 export interface Config {
   mode?: 'monorepo' | 'separate' | 'submodule'
   concurrency?: number
-  aliases?: Record<string, string>
+  alias?: Record<string, string>
+  require?: string[]
 }
 
 export const config: Config = {
   mode: 'monorepo',
   concurrency: 10,
-  aliases: {},
+  alias: {},
+  require: [],
 }
 
 try {
   const source = fs.readFileSync(cwd + '/yakumo.yml', 'utf8')
   Object.assign(config, yaml.load(source))
 } catch {}
+
+const configRequire = Module.createRequire(cwd + '/yakumo.yml')
+
+for (const path of config.require) {
+  configRequire(path)
+}
 
 export function requireSafe(id: string) {
   try {
@@ -47,55 +57,77 @@ export function exit(message: string) {
   return process.exit(0)
 }
 
-interface FallbackOptions {
-  workspaces?: Record<string, PackageJson>
-}
+export class Project {
+  cwd: string
+  config: Config
+  targets: Record<string, PackageJson>
+  workspaces: Record<string, PackageJson>
 
-async function getWorkspaces() {
-  const folders = await globby(meta.workspaces, {
-    cwd,
-    deep: 0,
-    onlyDirectories: true,
-    expandDirectories: false,
-  })
-  folders.unshift('')
+  constructor(public args: readonly string[]) {
+    this.cwd = cwd
+    this.config = config
+  }
 
-  return Object.fromEntries(folders.map((path) => {
-    if (path) path = '/' + path
-    try {
-      return [path, require(`${cwd}${path}/package.json`)] as [string, PackageJson]
-    } catch {}
-  }).filter(Boolean))
-}
+  async initialize() {
+    const folders = await globby(meta.workspaces, {
+      cwd,
+      deep: 0,
+      onlyDirectories: true,
+      expandDirectories: false,
+    })
+    folders.unshift('')
 
-export async function getPackages(args: readonly string[], options: FallbackOptions = {}) {
-  const workspaces = options.workspaces || await getWorkspaces()
-  if (!args.length) return workspaces
+    this.workspaces = Object.fromEntries(folders.map((path) => {
+      if (path) path = '/' + path
+      try {
+        return [path, require(`${cwd}${path}/package.json`)] as [string, PackageJson]
+      } catch {}
+    }).filter(Boolean))
 
-  function locate(name: string) {
-    if (config.aliases[name]) {
-      return config.aliases[name]
+    if (!this.args.length) {
+      this.targets = { ...this.workspaces }
+      return
     }
 
-    const targets = Object.keys(workspaces).filter((folder) => {
+    this.targets = Object.fromEntries(this.args.map((name) => {
+      const path = this.locate(name)
+      const meta = this.workspaces[path]
+      return [path, meta] as const
+    }))
+  }
+
+  private locate(name: string) {
+    if (config.alias[name]) {
+      return config.alias[name]
+    }
+
+    const targets = Object.keys(this.workspaces).filter((folder) => {
       const [last] = folder.split('/').reverse()
       return name === last
     })
+
     if (!targets.length) {
       throw new Error(`cannot find workspace "${name}"`)
     } else if (targets.length > 1) {
       throw new Error(`ambiguous workspace "${name}": ${targets.join(', ')}`)
     }
+
     return targets[0]
   }
 
-  const result = Object.fromEntries(args.map((name) => {
-    const path = locate(name)
-    const meta = workspaces[path]
-    return [path, meta] as const
-  }))
+  async emit(name: string) {
+    return hooks[name]?.(this)
+  }
 
-  return result
+  async save(path: string) {
+    await writeJSON(`${cwd}${path}/package.json`, this.workspaces[path])
+  }
+}
+
+export const hooks: Record<string, (project: Project) => void> = {}
+
+export function addHook(name: string, callback: (project: Project) => void) {
+  hooks[name] = callback
 }
 
 export type DependencyType = 'dependencies' | 'devDependencies' | 'peerDependencies' | 'optionalDependencies'

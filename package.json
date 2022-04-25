@@ -35,10 +35,10 @@
     "@types/js-yaml": "^4.0.5",
     "@types/prompts": "^2.0.14",
     "@types/semver": "^7.3.9",
-    "@types/which-pm-runs": "^1.0.0"
+    "@types/which-pm-runs": "^1.0.0",
+    "@types/yargs-parser": "^21.0.0"
   },
   "dependencies": {
-    "cac": "^6.7.12",
     "cross-spawn": "^7.0.3",
     "fs-extra": "^10.0.1",
     "globby": "^11.1.0",
@@ -49,6 +49,7 @@
     "p-map": "^4.0.0",
     "prompts": "^2.4.2",
     "semver": "^7.3.5",
-    "which-pm-runs": "^1.0.0"
+    "which-pm-runs": "^1.0.0",
+    "yargs-parser": "^21.0.1"
   }
 }

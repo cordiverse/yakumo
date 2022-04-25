@@ -1,8 +1,7 @@
-import { config, cwd, DependencyType, getPackages, PackageJson } from '.'
+import { config, cwd, DependencyType, addHook, PackageJson } from '.'
 import { cyan, green, yellow } from 'kleur'
 import { writeFile } from 'fs-extra'
 import { gt } from 'semver'
-import { CAC } from 'cac'
 import spawn from 'cross-spawn'
 import which from 'which-pm-runs'
 import latest from 'latest-version'
@@ -10,12 +9,9 @@ import pMap from 'p-map'
 import ora from 'ora'
 
 class Graph {
-  pkgs: Record<string, PackageJson> = {}
   deps: Record<string, Record<string, DependencyType[]>> = {}
 
-  async init(names: string[] = []) {
-    this.pkgs = await getPackages(names)
-
+  constructor(public pkgs: Record<string, PackageJson>) {
     for (const path in this.pkgs) {
       this.load(path, this.pkgs[path])
     }
@@ -70,12 +66,7 @@ class Graph {
   }
 }
 
-export default function (cli: CAC) {
-  cli.command('dep [...name]', 'bump dependencies')
-    .action(async (names: string[], options) => {
-      const graph = new Graph()
-
-      await graph.init(names)
-      await graph.update()
-    })
-}
+addHook('dep', async ({ targets }) => {
+  const graph = new Graph(targets)
+  await graph.update()
+})

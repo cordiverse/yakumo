@@ -1,8 +1,7 @@
-import { CAC } from 'cac'
 import { writeFile } from 'fs-extra'
 import { gt, SemVer } from 'semver'
 import { cyan, green } from 'kleur'
-import { cwd, exit, getPackages, PackageJson } from '.'
+import { addHook, cwd, PackageJson, Project } from '.'
 
 const bumpTypes = ['major', 'minor', 'patch', 'prerelease', 'version'] as const
 type BumpType = typeof bumpTypes[number]
@@ -65,14 +64,10 @@ class Package {
 class Graph {
   nodes: Record<string, Package> = {}
 
-  constructor(public options: any) {}
-
-  async init() {
-    const workspaces = await getPackages([])
-    for (const path in workspaces) {
+  constructor(public project: Project, public options: any) {
+    for (const path in project.workspaces) {
       this.nodes[path] = new Package(path)
     }
-    return workspaces
   }
 
   each<T>(callback: (node: Package, path: string) => T) {
@@ -118,31 +113,25 @@ class Graph {
   }
 }
 
-export default function (cli: CAC) {
-  cli.command('bump [...names]', 'bump versions')
-    .option('-1, --major', '')
-    .option('-2, --minor', '')
-    .option('-3, --patch', '')
-    .option('-p, --prerelease', '')
-    .option('-v, --version <ver>', '')
-    .option('-r, --recursive', '')
-    .action(async (names: string[], options) => {
-      if (!names) exit('no package specified')
+// .option('-1, --major', '')
+// .option('-2, --minor', '')
+// .option('-3, --patch', '')
+// .option('-p, --prerelease', '')
+// .option('-v, --version <ver>', '')
+// .option('-r, --recursive', '')
+addHook('bump', async (project) => {
+  const options = {}
+  const graph = new Graph(project, options)
 
-      const graph = new Graph(options)
-      const workspaces = await graph.init()
-      const packages = await getPackages(names, { workspaces })
+  const flag = (() => {
+    for (const type of bumpTypes) {
+      if (type in options) return type
+    }
+  })()
 
-      const flag = (() => {
-        for (const type of bumpTypes) {
-          if (type in options) return type
-        }
-      })()
+  for (const path in project.targets) {
+    graph.bump(graph.nodes[path], flag)
+  }
 
-      for (const path in packages) {
-        graph.bump(graph.nodes[path], flag)
-      }
-
-      await graph.save()
-    })
-}
+  await graph.save()
+})

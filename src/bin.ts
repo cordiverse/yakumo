@@ -1,22 +1,23 @@
 #!/usr/bin/env node
 
-import registerBuildCommand from './build'
-import registerBumpCommand from './bump'
-import registerDepCommand from './dep'
-import registerPublishCommand from './publish'
-import CAC from 'cac'
+import { cwd, Project } from '.'
+import './bump'
+import './dep'
+import './publish'
 
-const { version } = require('../package.json')
-
-const cli = CAC('yakumo').help().version(version)
-
-registerBuildCommand(cli)
-registerBumpCommand(cli)
-registerDepCommand(cli)
-registerPublishCommand(cli)
-
-cli.parse()
-
-if (!cli.matchedCommand) {
-  cli.outputHelp()
+if (process.argv.length <= 2) {
+  console.log('yakumo')
+  process.exit(0)
 }
+
+const command = process.argv[2]
+
+try {
+  require(cwd + '/scripts/' + command)
+} catch {}
+
+(async () => {
+  const project = new Project(process.argv.slice(3))
+  await project.initialize()
+  return project.emit(command)
+})()
