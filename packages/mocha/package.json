@@ -1,0 +1,41 @@
+{
+  "name": "yakumo-mocha",
+  "description": "Manage complex workspaces with ease",
+  "version": "0.2.0",
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
+  "engines": {
+    "node": ">=12.0.0"
+  },
+  "files": [
+    "lib"
+  ],
+  "author": "Shigma <shigma10826@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cosmotype/yakumo.git"
+  },
+  "bugs": {
+    "url": "https://github.com/cosmotype/yakumo/issues"
+  },
+  "homepage": "https://github.com/cosmotype/yakumo",
+  "keywords": [
+    "monorepo",
+    "workspace",
+    "cli",
+    "script",
+    "mocha",
+    "test"
+  ],
+  "peerDependencies": {
+    "yakumo": "^0.1.0"
+  },
+  "devDependencies": {
+    "@types/mocha": "^9.1.0"
+  },
+  "dependencies": {
+    "globby": "^11.1.0",
+    "mocha": "^9.2.2"
+  }
+}
