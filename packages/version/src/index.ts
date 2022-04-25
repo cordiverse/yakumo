@@ -1,7 +1,7 @@
 import { writeFile } from 'fs-extra'
 import { gt, SemVer } from 'semver'
 import { cyan, green } from 'kleur'
-import { addHook, cwd, PackageJson, Project } from 'yakumo'
+import { register, cwd, PackageJson, Project } from 'yakumo'
 
 const bumpTypes = ['major', 'minor', 'patch', 'prerelease', 'version'] as const
 type BumpType = typeof bumpTypes[number]
@@ -113,13 +113,7 @@ class Graph {
   }
 }
 
-// .option('-1, --major', '')
-// .option('-2, --minor', '')
-// .option('-3, --patch', '')
-// .option('-p, --prerelease', '')
-// .option('-v, --version <ver>', '')
-// .option('-r, --recursive', '')
-addHook('command/version', async (project) => {
+register('version', async (project) => {
   const options = {}
   const graph = new Graph(project, options)
 
@@ -134,4 +128,14 @@ addHook('command/version', async (project) => {
   }
 
   await graph.save()
+}, {
+  alias: {
+    major: ['1'],
+    minor: ['2'],
+    patch: ['3'],
+    prerelease: ['p'],
+    version: ['v'],
+    recursive: ['r'],
+  },
+  boolean: ['major', 'minor', 'patch', 'prerelease', 'recursive'],
 })

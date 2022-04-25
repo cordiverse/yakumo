@@ -2,12 +2,14 @@ import { build, BuildFailure, BuildOptions, Message, Plugin } from 'esbuild'
 import { resolve, relative } from 'path'
 import { cyan, red, yellow } from 'kleur'
 import { readFile } from 'fs/promises'
-import { addHook, PackageJson, Project, TsConfig } from 'yakumo'
+import { register, PackageJson, Project } from 'yakumo'
+import ts from 'typescript'
 import json5 from 'json5'
 
 declare module 'yakumo' {
   interface Hooks {
-    'esbuild/before-compile'(options: BuildOptions[], meta: PackageJson): void
+    'esbuild.before'(options: BuildOptions[], meta: PackageJson): void
+    'esbuild.after'(options: BuildOptions[], meta: PackageJson): void
   }
 }
 
@@ -32,11 +34,11 @@ const displayWarning = display(yellow('warning:'))
 let code = 0
 
 function bundle(options: BuildOptions, index: number) {
-  if (index === 0) {
-    // show entry list
-    for (const path of Object.values(options.entryPoints)) {
-      console.log('entry:', relative(process.cwd(), path))
-    }
+  // show entry list
+  for (const [key, value] of Object.entries(options.entryPoints)) {
+    const source = relative(process.cwd(), value)
+    const target = relative(process.cwd(), resolve(options.outdir, key + '.js'))
+    console.log('esbuild:', source, '->', target)
   }
 
   return build(options).then(({ warnings }) => {
@@ -46,6 +48,17 @@ function bundle(options: BuildOptions, index: number) {
     warnings.forEach(displayWarning)
     if (errors.length) code = 1
   })
+}
+
+interface Reference {
+  path: string
+}
+
+export interface TsConfig {
+  extends?: string
+  files?: string[]
+  references?: Reference[]
+  compilerOptions?: ts.CompilerOptions
 }
 
 async function readTsConfig(base: string) {
@@ -99,22 +112,23 @@ async function compile(path: string, meta: PackageJson, project: Project) {
   if (meta.module) {
     options.push({
       ...options[0],
-      outdir: undefined,
+      entryPoints: {
+        [meta.module.slice(4, -3)]: base + '/src/index.ts',
+      },
       format: 'esm',
       target: 'esnext',
       platform: 'browser',
       sourcemap: false,
       minify: true,
-      outfile: base + '/' + meta.module,
     })
   }
 
-  project.emit('esbuild/before-compile', options, meta)
+  project.emit('esbuild.before', options, meta)
   await Promise.all(options.map(bundle)).catch(console.error)
-  project.emit('esbuild/after-compile', options, meta)
+  project.emit('esbuild.after', options, meta)
 }
 
-addHook('command/esbuild', async (project) => {
+register('esbuild', async (project) => {
   await Promise.all(Object.entries(project.targets).map(([key, value]) => {
     return compile(key, value, project)
   }))

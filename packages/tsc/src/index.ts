@@ -1,5 +1,5 @@
 import { promises as fsp } from 'fs'
-import { addHook, cwd, PackageJson, spawnAsync, TsConfig } from 'yakumo'
+import { register, cwd, PackageJson, spawnAsync } from 'yakumo'
 
 interface Node {
   path?: string
@@ -8,7 +8,16 @@ interface Node {
   next?: Set<string>
 }
 
-addHook('command/tsc', async (project) => {
+interface Reference {
+  path: string
+}
+
+interface TsConfig {
+  files?: string[]
+  references?: Reference[]
+}
+
+register('tsc', async (project) => {
   const { targets } = project
   const nodes: Record<string, Node> = {}
   for (const path in targets) {

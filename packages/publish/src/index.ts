@@ -1,8 +1,15 @@
-import { addHook, exit, spawnAsync } from 'yakumo'
+import { register, exit, spawnAsync } from 'yakumo'
 import { gt, prerelease } from 'semver'
 import latest from 'latest-version'
 import ora from 'ora'
 import prompts from 'prompts'
+
+declare module 'yakumo' {
+  interface Hooks {
+    'publish.before'(path: string, meta: PackageJson): void
+    'publish.after'(path: string, meta: PackageJson): void
+  }
+}
 
 function getVersion(name: string, isNext = false) {
   if (isNext) {
@@ -27,10 +34,10 @@ function publish(agent: string, path: string, name: string, version: string, tag
   ])
 }
 
-addHook('command/publish', async (project) => {
-  const { args, targets } = project
+register('publish', async (project) => {
+  const { argv, targets } = project
   const spinner = ora()
-  if (args.length) {
+  if (argv._.length) {
     const pending = Object.keys(targets).filter(path => targets[path].private)
     if (pending.length) {
       const paths = pending.map(path => targets[path].name).join(', ')
@@ -64,8 +71,9 @@ addHook('command/publish', async (project) => {
   const agent = project.manager?.name || 'npm'
   for (const path in targets) {
     const { name, version } = targets[path]
-    project.emit('publish-item')
+    project.emit('publish.before', path, targets[path])
     await publish(agent, path, name, version, isNext(version) ? 'next' : 'latest')
+    project.emit('publish.after', path, targets[path])
   }
 
   spinner.succeed('All workspaces are up to date.')

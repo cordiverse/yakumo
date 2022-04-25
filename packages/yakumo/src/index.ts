@@ -1,37 +1,31 @@
 import spawn from 'cross-spawn'
 import globby from 'globby'
-import ts from 'typescript'
 import ora from 'ora'
 import prompts from 'prompts'
-import yaml from 'js-yaml'
-import fs from 'fs'
 import which from 'which-pm-runs'
+import { Arguments, Options } from 'yargs-parser'
 import { writeJSON } from 'fs-extra'
 import { Module } from 'module'
 
 export const cwd = process.cwd()
 export const meta: PackageJson = require(cwd + '/package.json')
 
+export interface Commands {}
+
 export interface Config {
-  mode?: 'monorepo' | 'separate' | 'submodule'
-  concurrency?: number
   alias?: Record<string, string>
   require?: string[]
+  commands?: Commands
 }
 
 export const config: Config = {
-  mode: 'monorepo',
-  concurrency: 10,
   alias: {},
   require: [],
+  commands: {},
+  ...meta.yakumo,
 }
 
-try {
-  const source = fs.readFileSync(cwd + '/yakumo.yml', 'utf8')
-  Object.assign(config, yaml.load(source))
-} catch {}
-
-const configRequire = Module.createRequire(cwd + '/yakumo.yml')
+const configRequire = Module.createRequire(cwd + '/package.json')
 
 for (const path of config.require) {
   configRequire(path)
@@ -70,7 +64,7 @@ export class Project {
   targets: Record<string, PackageJson>
   workspaces: Record<string, PackageJson>
 
-  constructor(public args: readonly string[]) {
+  constructor(public argv: Arguments) {
     this.cwd = cwd
     this.config = config
     this.manager = which()
@@ -92,12 +86,12 @@ export class Project {
       } catch {}
     }).filter(Boolean))
 
-    if (!this.args.length) {
+    if (!this.argv._.length) {
       this.targets = { ...this.workspaces }
       return
     }
 
-    this.targets = Object.fromEntries(this.args.map((name) => {
+    this.targets = Object.fromEntries(this.argv._.map((name: string) => {
       const path = this.locate(name)
       const meta = this.workspaces[path]
       return [path, meta] as const
@@ -132,16 +126,20 @@ export class Project {
   }
 }
 
-type CommandHooks = {
-  [K in `command/${string}`]: (project: Project) => void
-}
-
-export interface Hooks extends CommandHooks {}
+export interface Hooks {}
 
 export const hooks: { [K in keyof Hooks]: Hooks[K][] } = {}
 
 export function addHook<K extends keyof Hooks>(name: K, callback: Hooks[K]) {
-  (hooks[name] ||= []).push(callback)
+  (hooks[name] ||= [] as never).push(callback)
+}
+
+type CommandCallback = (project: Project) => void
+
+export const commands: Record<string, [CommandCallback, Options]> = {}
+
+export function register(name: string, callback: (project: Project) => void, options?: Options) {
+  commands[name] = [callback, options]
 }
 
 export type DependencyType = 'dependencies' | 'devDependencies' | 'peerDependencies' | 'optionalDependencies'
@@ -155,17 +153,7 @@ export interface PackageJson extends Partial<Record<DependencyType, Record<strin
   private?: boolean
   version?: string
   workspaces: string[]
-}
-
-interface Reference {
-  path: string
-}
-
-export interface TsConfig {
-  extends?: string
-  files?: string[]
-  references?: Reference[]
-  compilerOptions?: ts.CompilerOptions
+  yakumo?: Config
 }
 
 export function spawnAsync(args: string[]) {

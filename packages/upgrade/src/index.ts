@@ -1,4 +1,4 @@
-import { config, DependencyType, addHook, PackageJson } from 'yakumo'
+import { DependencyType, register, PackageJson } from 'yakumo'
 import { cyan, green, yellow } from 'kleur'
 import { gt } from 'semver'
 import spawn from 'cross-spawn'
@@ -6,8 +6,19 @@ import latest from 'latest-version'
 import pMap from 'p-map'
 import ora from 'ora'
 
-addHook('command/upgrade', async (project) => {
-  const { targets, manager } = project
+interface UpgradeConfig {
+  concurrency?: number
+}
+
+declare module 'yakumo' {
+  interface Commands {
+    upgrade: UpgradeConfig
+  }
+}
+
+register('upgrade', async (project) => {
+  const { targets, manager, config } = project
+  const { concurrency = 10 } = config.commands.upgrade || {}
   const deps: Record<string, Record<string, DependencyType[]>> = {}
   for (const path in targets) {
     load(path, targets[path])
@@ -32,7 +43,7 @@ addHook('command/upgrade', async (project) => {
         targets[name][type][dep] = newRange
       }
     }
-  }, { concurrency: config.concurrency })
+  }, { concurrency })
   spinner.succeed()
 
   for (const path in targets) {
