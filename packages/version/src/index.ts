@@ -64,7 +64,7 @@ class Package {
 class Graph {
   nodes: Record<string, Package> = {}
 
-  constructor(public project: Project, public options: any) {
+  constructor(public project: Project) {
     for (const path in project.workspaces) {
       this.nodes[path] = new Package(path)
     }
@@ -79,7 +79,7 @@ class Graph {
   }
 
   bump(node: Package, flag: BumpType) {
-    const version = node.bump(flag, this.options)
+    const version = node.bump(flag, this.project.argv)
     if (!version) return
     const dependents = new Set<Package>()
     this.each((target) => {
@@ -96,7 +96,7 @@ class Graph {
           }
         })
     })
-    if (!this.options.recursive) return
+    if (!this.project.argv.recursive) return
     dependents.forEach(dep => this.bump(dep, flag))
   }
 
@@ -114,12 +114,11 @@ class Graph {
 }
 
 register('version', async (project) => {
-  const options = {}
-  const graph = new Graph(project, options)
+  const graph = new Graph(project)
 
   const flag = (() => {
     for (const type of bumpTypes) {
-      if (type in options) return type
+      if (type in project.argv) return type
     }
   })()
 
