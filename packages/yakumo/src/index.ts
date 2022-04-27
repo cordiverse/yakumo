@@ -3,7 +3,7 @@ import globby from 'globby'
 import ora from 'ora'
 import prompts from 'prompts'
 import which from 'which-pm-runs'
-import { Arguments, Options } from 'yargs-parser'
+import yargs from 'yargs-parser'
 import { writeJSON } from 'fs-extra'
 import { Module } from 'module'
 
@@ -86,7 +86,7 @@ export class Project {
       } catch {}
     }).filter(Boolean))
 
-    if (!this.argv._.length) {
+    if (!this.argv._.length || this.argv.config.manual) {
       this.targets = { ...this.workspaces }
       return
     }
@@ -104,6 +104,7 @@ export class Project {
     }
 
     const targets = Object.keys(this.workspaces).filter((folder) => {
+      if (this.workspaces[folder].private) return
       const [last] = folder.split('/').reverse()
       return name === last
     })
@@ -118,7 +119,7 @@ export class Project {
   }
 
   async emit(name: string, ...args: any) {
-    await Promise.all((hooks[name] || []).map((callback) => callback(...args)))
+    await Promise.all((hooks[name] || []).map((callback) => callback.call(this, ...args)))
   }
 
   async save(path: string) {
@@ -136,9 +137,17 @@ export function addHook<K extends keyof Hooks>(name: K, callback: Hooks[K]) {
 
 type CommandCallback = (project: Project) => void
 
+export interface Arguments extends yargs.Arguments {
+  config: Options
+}
+
+export interface Options extends yargs.Options {
+  manual?: boolean
+}
+
 export const commands: Record<string, [CommandCallback, Options]> = {}
 
-export function register(name: string, callback: (project: Project) => void, options?: Options) {
+export function register(name: string, callback: (project: Project) => void, options: Options = {}) {
   commands[name] = [callback, options]
 }
 

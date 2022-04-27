@@ -69,4 +69,6 @@ register('upgrade', async (project) => {
       }
     }
   }
+}, {
+  manual: true,
 })

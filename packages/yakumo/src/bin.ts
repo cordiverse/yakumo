@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { cwd, commands, Project, requireSafe } from '.'
+import { cwd, commands, Project, requireSafe, Arguments } from '.'
 import parse from 'yargs-parser'
 
 if (process.argv.length <= 2) {
@@ -19,7 +19,8 @@ if (!commands[name]) {
 
 ;(async () => {
   const [callback, options] = commands[name]
-  const argv = parse(process.argv.slice(3), options)
+  const argv = parse(process.argv.slice(3), options) as Arguments
+  argv.config = options
   const project = new Project(argv)
   await project.initialize()
   return callback(project)
