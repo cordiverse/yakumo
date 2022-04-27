@@ -85,22 +85,3 @@ register('publish', async (project) => {
 
   spinner.succeed('All workspaces are up to date.')
 })
-
-addHook('publish.before', async function (path, target) {
-  const initial = path
-  while (path.length > 1) {
-    if (this.workspaces[path] && existsSync(this.cwd + path + '/readme.md')) {
-      if (path === initial) return
-      Object.defineProperty(target, '$copied', { value: true })
-      await copyFile(`${this.cwd}${path}/README.md`, `${this.cwd}${initial}/README.md`)
-      return
-    }
-    path = dirname(path)
-  }
-})
-
-addHook('publish.after', async function (path, target) {
-  if (target.$copied) {
-    await rm(`${this.cwd}${path}/README.md`)
-  }
-})
