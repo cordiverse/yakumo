@@ -28,7 +28,9 @@ class Package {
         version.patch += 1
       }
     } else if (flag === 'version') {
-      version = new SemVer(options.version)
+      this.dirty = true
+      this.version = options.version
+      return options.version
     } else if (flag === 'prerelease') {
       if (version.prerelease.length) {
         version.prerelease = [{
