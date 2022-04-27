@@ -1,7 +1,7 @@
 {
   "name": "yakumo-tsc",
-  "description": "Manage complex workspaces with ease",
-  "version": "0.2.0",
+  "description": "TypeScript CLI support for Yakumo",
+  "version": "0.2.1",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "engines": {
@@ -30,6 +30,6 @@
     "typescript"
   ],
   "peerDependencies": {
-    "yakumo": "^0.2.0"
+    "yakumo": "^0.2.1"
   }
 }

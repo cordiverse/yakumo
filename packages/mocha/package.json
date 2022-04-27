@@ -1,7 +1,7 @@
 {
   "name": "yakumo-mocha",
-  "description": "Manage complex workspaces with ease",
-  "version": "0.2.2",
+  "description": "Mocha support for Yakumo",
+  "version": "0.2.3",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "engines": {
@@ -29,7 +29,7 @@
     "test"
   ],
   "peerDependencies": {
-    "yakumo": "^0.2.0"
+    "yakumo": "^0.2.1"
   },
   "devDependencies": {
     "@types/mocha": "^9.1.0"

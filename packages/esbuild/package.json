@@ -1,7 +1,7 @@
 {
   "name": "yakumo-esbuild",
-  "description": "Manage complex workspaces with ease",
-  "version": "0.2.0",
+  "description": "Esbuild support for Yakumo",
+  "version": "0.2.1",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "engines": {
@@ -29,7 +29,7 @@
     "build"
   ],
   "peerDependencies": {
-    "yakumo": "^0.2.0"
+    "yakumo": "^0.2.1"
   },
   "dependencies": {
     "esbuild": "^0.14.38"
