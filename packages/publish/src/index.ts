@@ -1,13 +1,20 @@
-import { register, exit, spawnAsync } from 'yakumo'
+import { register, exit, spawnAsync, addHook } from 'yakumo'
 import { gt, prerelease } from 'semver'
+import { existsSync } from 'fs'
+import { copyFile, rm } from 'fs/promises'
 import latest from 'latest-version'
 import ora from 'ora'
 import prompts from 'prompts'
+import { dirname } from 'path'
 
 declare module 'yakumo' {
+  interface PackageJson {
+    $copied?: boolean
+  }
+
   interface Hooks {
-    'publish.before'(path: string, meta: PackageJson): void
-    'publish.after'(path: string, meta: PackageJson): void
+    'publish.before'(this: Project, path: string, meta: PackageJson): Promise<void>
+    'publish.after'(this: Project, path: string, meta: PackageJson): Promise<void>
   }
 }
 
@@ -71,10 +78,29 @@ register('publish', async (project) => {
   const agent = project.manager?.name || 'npm'
   for (const path in targets) {
     const { name, version } = targets[path]
-    project.emit('publish.before', path, targets[path])
+    await project.emit('publish.before', path, targets[path])
     await publish(agent, path, name, version, isNext(version) ? 'next' : 'latest')
-    project.emit('publish.after', path, targets[path])
+    await project.emit('publish.after', path, targets[path])
   }
 
   spinner.succeed('All workspaces are up to date.')
+})
+
+addHook('publish.before', async function (path, target) {
+  const initial = path
+  while (path.length > 1) {
+    if (this.workspaces[path] && existsSync(this.cwd + path + '/readme.md')) {
+      if (path === initial) return
+      Object.defineProperty(target, '$copied', { value: true })
+      await copyFile(`${this.cwd}${path}/README.md`, `${this.cwd}${initial}/README.md`)
+      return
+    }
+    path = dirname(path)
+  }
+})
+
+addHook('publish.after', async function (path, target) {
+  if (target.$copied) {
+    await rm(`${this.cwd}${path}/README.md`)
+  }
 })

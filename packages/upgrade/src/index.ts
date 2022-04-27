@@ -11,6 +11,10 @@ interface UpgradeConfig {
 }
 
 declare module 'yakumo' {
+  interface PackageJson {
+    $dirty?: boolean
+  }
+
   interface Commands {
     upgrade: UpgradeConfig
   }

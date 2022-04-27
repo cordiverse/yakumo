@@ -154,7 +154,6 @@ export function register(name: string, callback: (project: Project) => void, opt
 export type DependencyType = 'dependencies' | 'devDependencies' | 'peerDependencies' | 'optionalDependencies'
 
 export interface PackageJson extends Partial<Record<DependencyType, Record<string, string>>> {
-  $dirty?: boolean
   name: string
   main?: string
   module?: string
