@@ -14,7 +14,8 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/cosmotype/yakumo.git"
+    "url": "git+https://github.com/cosmotype/yakumo.git",
+    "directory": "packages/publish"
   },
   "bugs": {
     "url": "https://github.com/cosmotype/yakumo/issues"
@@ -31,13 +32,13 @@
     "yakumo": "^0.2.1"
   },
   "devDependencies": {
-    "@types/prompts": "^2.0.14",
+    "@types/prompts": "^2.4.0",
     "@types/semver": "^7.3.9"
   },
   "dependencies": {
     "latest-version": "^5.1.0",
     "ora": "^5.4.1",
     "prompts": "^2.4.2",
-    "semver": "^7.3.5"
+    "semver": "^7.3.7"
   }
 }

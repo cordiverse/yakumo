@@ -14,7 +14,8 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/cosmotype/yakumo.git"
+    "url": "git+https://github.com/cosmotype/yakumo.git",
+    "directory": "packages/mocha"
   },
   "bugs": {
     "url": "https://github.com/cosmotype/yakumo/issues"
@@ -32,7 +33,7 @@
     "yakumo": "^0.2.1"
   },
   "devDependencies": {
-    "@types/mocha": "^9.1.0"
+    "@types/mocha": "^9.1.1"
   },
   "dependencies": {
     "globby": "^11.1.0",

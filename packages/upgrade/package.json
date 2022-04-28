@@ -14,7 +14,8 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/cosmotype/yakumo.git"
+    "url": "git+https://github.com/cosmotype/yakumo.git",
+    "directory": "packages/upgrade"
   },
   "bugs": {
     "url": "https://github.com/cosmotype/yakumo/issues"
@@ -40,6 +41,6 @@
     "latest-version": "^5.1.0",
     "ora": "^5.4.1",
     "p-map": "^4.0.0",
-    "semver": "^7.3.5"
+    "semver": "^7.3.7"
   }
 }

@@ -98,7 +98,7 @@ export class Project {
     }))
   }
 
-  private locate(name: string) {
+  locate(name: string) {
     if (config.alias[name]) {
       return config.alias[name]
     }

@@ -14,7 +14,8 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/cosmotype/yakumo.git"
+    "url": "git+https://github.com/cosmotype/yakumo.git",
+    "directory": "packages/tsc"
   },
   "bugs": {
     "url": "https://github.com/cosmotype/yakumo/issues"
