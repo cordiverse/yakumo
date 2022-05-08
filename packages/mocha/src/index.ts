@@ -2,6 +2,8 @@ import { register } from 'yakumo'
 import Mocha from 'mocha'
 import globby from 'globby'
 
+Error.stackTraceLimit = 50
+
 register('mocha', async (project) => {
   const { cwd, argv } = project
   const patterns = argv._.map((arg: string) => {
