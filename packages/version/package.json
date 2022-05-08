@@ -1,7 +1,7 @@
 {
   "name": "yakumo-version",
   "description": "Update package versions in a Yakumo workspace",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "engines": {
@@ -31,7 +31,7 @@
     "bump"
   ],
   "peerDependencies": {
-    "yakumo": "^0.2.1"
+    "yakumo": "^0.2.2"
   },
   "devDependencies": {
     "@types/semver": "^7.3.9"

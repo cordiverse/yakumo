@@ -6,6 +6,7 @@ import which from 'which-pm-runs'
 import yargs from 'yargs-parser'
 import { writeJSON } from 'fs-extra'
 import { Module } from 'module'
+import { Dict, makeArray, pick } from 'cosmokit'
 
 export const cwd = process.cwd()
 export const meta: PackageJson = require(cwd + '/package.json')
@@ -13,7 +14,7 @@ export const meta: PackageJson = require(cwd + '/package.json')
 export interface Commands {}
 
 export interface Config {
-  alias?: Record<string, string>
+  alias?: Dict<string | string[]>
   require?: string[]
   commands?: Commands
 }
@@ -91,31 +92,30 @@ export class Project {
       return
     }
 
-    this.targets = Object.fromEntries(this.argv._.map((name: string) => {
-      const path = this.locate(name)
-      const meta = this.workspaces[path]
-      return [path, meta] as const
+    this.targets = pick(this.workspaces, this.argv._.flatMap((name: string) => {
+      if (config.alias[name]) {
+        return makeArray(config.alias[name]).map((path) => {
+          if (!this.workspaces[path]) {
+            throw new Error(`cannot find workspace ${path} resolved by ${name}`)
+          }
+          return path
+        })
+      }
+
+      const targets = Object.keys(this.workspaces).filter((folder) => {
+        if (this.workspaces[folder].private) return
+        const [last] = folder.split('/').reverse()
+        return name === last
+      })
+
+      if (!targets.length) {
+        throw new Error(`cannot find workspace "${name}"`)
+      } else if (targets.length > 1) {
+        throw new Error(`ambiguous workspace "${name}": ${targets.join(', ')}`)
+      }
+
+      return targets[0]
     }))
-  }
-
-  locate(name: string) {
-    if (config.alias[name]) {
-      return config.alias[name]
-    }
-
-    const targets = Object.keys(this.workspaces).filter((folder) => {
-      if (this.workspaces[folder].private) return
-      const [last] = folder.split('/').reverse()
-      return name === last
-    })
-
-    if (!targets.length) {
-      throw new Error(`cannot find workspace "${name}"`)
-    } else if (targets.length > 1) {
-      throw new Error(`ambiguous workspace "${name}": ${targets.join(', ')}`)
-    }
-
-    return targets[0]
   }
 
   async emit(name: string, ...args: any) {

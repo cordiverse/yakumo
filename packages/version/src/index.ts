@@ -91,7 +91,7 @@ class Graph {
       Object.entries({ devDependencies, peerDependencies, dependencies, optionalDependencies })
         .filter(([, dependencies = {}]) => dependencies[name])
         .forEach(([type]) => {
-          const prefix = /^[\^~]?/.exec(type)[0]
+          const prefix = /^[\^~]?/.exec(target.meta[type][name])[0]
           target.meta[type][name] = prefix + version
           target.dirty = true
           if (type !== 'devDependencies') {

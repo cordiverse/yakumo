@@ -1,7 +1,7 @@
 {
   "name": "yakumo",
   "description": "Manage complex workspaces with ease",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "engines": {
@@ -37,6 +37,7 @@
     "@types/yargs-parser": "^21.0.0"
   },
   "dependencies": {
+    "cosmokit": "^1.1.2",
     "cross-spawn": "^7.0.3",
     "fs-extra": "^10.1.0",
     "globby": "^11.1.0",
