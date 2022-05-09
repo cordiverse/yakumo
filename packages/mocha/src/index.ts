@@ -6,10 +6,12 @@ Error.stackTraceLimit = 50
 
 register('mocha', async (project) => {
   const { cwd, argv } = project
-  const patterns = argv._.map((arg: string) => {
+  const patterns = argv._.flatMap((arg: string) => {
     const [folder] = arg.split('/', 1)
     const name = arg.slice(folder.length + 1) || '*'
-    return `${project.locate(folder)}/tests/${name}.spec.ts`.slice(1)
+    return project.locate(folder).map((path) => {
+      return `${path}/tests/${name}.spec.ts`.slice(1)
+    })
   })
 
   const mocha = new Mocha()

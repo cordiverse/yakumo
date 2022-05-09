@@ -93,20 +93,20 @@ export class Project {
     }
 
     this.targets = pick(this.workspaces, this.argv._.flatMap((name: string) => {
-      if (!config.alias[name]) {
-        return this.locate(name)
-      }
+      return this.locate(name)
+    }))
+  }
 
+  locate(name: string) {
+    if (config.alias[name]) {
       return makeArray(config.alias[name]).map((path) => {
         if (!this.workspaces[path]) {
           throw new Error(`cannot find workspace ${path} resolved by ${name}`)
         }
         return path
       })
-    }))
-  }
+    }
 
-  locate(name: string) {
     const targets = Object.keys(this.workspaces).filter((folder) => {
       if (this.workspaces[folder].private) return
       const [last] = folder.split('/').reverse()
@@ -119,7 +119,7 @@ export class Project {
       throw new Error(`ambiguous workspace "${name}": ${targets.join(', ')}`)
     }
 
-    return targets[0]
+    return targets
   }
 
   async emit(name: string, ...args: any) {
