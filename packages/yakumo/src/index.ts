@@ -93,29 +93,33 @@ export class Project {
     }
 
     this.targets = pick(this.workspaces, this.argv._.flatMap((name: string) => {
-      if (config.alias[name]) {
-        return makeArray(config.alias[name]).map((path) => {
-          if (!this.workspaces[path]) {
-            throw new Error(`cannot find workspace ${path} resolved by ${name}`)
-          }
-          return path
-        })
+      if (!config.alias[name]) {
+        return this.locate(name)
       }
 
-      const targets = Object.keys(this.workspaces).filter((folder) => {
-        if (this.workspaces[folder].private) return
-        const [last] = folder.split('/').reverse()
-        return name === last
+      return makeArray(config.alias[name]).map((path) => {
+        if (!this.workspaces[path]) {
+          throw new Error(`cannot find workspace ${path} resolved by ${name}`)
+        }
+        return path
       })
-
-      if (!targets.length) {
-        throw new Error(`cannot find workspace "${name}"`)
-      } else if (targets.length > 1) {
-        throw new Error(`ambiguous workspace "${name}": ${targets.join(', ')}`)
-      }
-
-      return targets[0]
     }))
+  }
+
+  locate(name: string) {
+    const targets = Object.keys(this.workspaces).filter((folder) => {
+      if (this.workspaces[folder].private) return
+      const [last] = folder.split('/').reverse()
+      return name === last
+    })
+
+    if (!targets.length) {
+      throw new Error(`cannot find workspace "${name}"`)
+    } else if (targets.length > 1) {
+      throw new Error(`ambiguous workspace "${name}": ${targets.join(', ')}`)
+    }
+
+    return targets[0]
   }
 
   async emit(name: string, ...args: any) {
