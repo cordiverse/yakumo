@@ -4,7 +4,7 @@ import ora from 'ora'
 import prompts from 'prompts'
 import which from 'which-pm-runs'
 import yargs from 'yargs-parser'
-import { writeJSON } from 'fs-extra'
+import { promises as fsp } from 'fs'
 import { Module } from 'module'
 import { Dict, makeArray, pick } from 'cosmokit'
 
@@ -127,7 +127,8 @@ export class Project {
   }
 
   async save(path: string) {
-    await writeJSON(`${cwd}${path}/package.json`, this.workspaces[path], { spaces: 2 })
+    const content = JSON.stringify(this.workspaces[path], null, 2) + '\n'
+    await fsp.writeFile(`${cwd}${path}/package.json`, content)
   }
 }
 
