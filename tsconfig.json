@@ -3,7 +3,7 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "yakumo": ["packages/yakumo/src"],
+      "yakumo": ["packages/core/src"],
       "yakumo-*": ["packages/*/src"],
     },
   },

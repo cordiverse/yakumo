@@ -1,1 +1,1 @@
-./packages/yakumo/readme.md
+./packages/core/readme.md
