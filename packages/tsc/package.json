@@ -14,13 +14,13 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/cosmotype/yakumo.git",
+    "url": "git+https://github.com/shigma/yakumo.git",
     "directory": "packages/tsc"
   },
   "bugs": {
-    "url": "https://github.com/cosmotype/yakumo/issues"
+    "url": "https://github.com/shigma/yakumo/issues"
   },
-  "homepage": "https://github.com/cosmotype/yakumo",
+  "homepage": "https://github.com/shigma/yakumo",
   "keywords": [
     "monorepo",
     "workspace",
