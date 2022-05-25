@@ -1,11 +1,8 @@
-import { register, exit, spawnAsync, addHook } from 'yakumo'
+import { register, Manager, exit, spawnAsync } from 'yakumo'
 import { gt, prerelease } from 'semver'
-import { existsSync } from 'fs'
-import { copyFile, rm } from 'fs/promises'
 import latest from 'latest-version'
 import ora from 'ora'
 import prompts from 'prompts'
-import { dirname } from 'path'
 
 declare module 'yakumo' {
   interface PackageJson {
@@ -32,10 +29,16 @@ function isNext(version: string) {
   return parts[0] !== 'rc'
 }
 
-function publish(agent: string, path: string, name: string, version: string, tag: string) {
+function getPublishCommand(manager: Manager) {
+  if (!manager) return ['npm']
+  if (manager.name !== 'yarn' || manager.version.startsWith('1.')) return [manager.name]
+  return ['yarn', 'npm']
+}
+
+function publish(manager: Manager, path: string, name: string, version: string, tag: string) {
   console.log(`publishing ${name}@${version} ...`)
   return spawnAsync([
-    agent, 'publish', path.slice(1),
+    ...getPublishCommand(manager), 'publish', path.slice(1),
     '--tag', tag,
     '--access', 'public',
   ])
@@ -75,11 +78,10 @@ register('publish', async (project) => {
     spinner.succeed()
   }
 
-  const agent = project.manager?.name || 'npm'
   for (const path in targets) {
     const { name, version } = targets[path]
     await project.emit('publish.before', path, targets[path])
-    await publish(agent, path, name, version, isNext(version) ? 'next' : 'latest')
+    await publish(project.manager, path, name, version, isNext(version) ? 'next' : 'latest')
     await project.emit('publish.after', path, targets[path])
   }
 
