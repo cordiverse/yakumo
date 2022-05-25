@@ -30,10 +30,12 @@ register('upgrade', async (project) => {
 
   const output: string[] = []
   const requests = Object.keys(deps)
+  const names = Object.values(targets).map(p => p.name)
   const spinner = ora(`progress: 0/${requests.length}`).start()
   let progress = 0
   await pMap(requests, async (request) => {
     const [dep, oldRange] = request.split(':')
+    if (names.includes(dep)) return
     const oldVersion = oldRange.slice(1)
     const newVersion = await latest(dep, { version: oldRange })
     progress++
