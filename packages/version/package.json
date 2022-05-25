@@ -1,7 +1,7 @@
 {
   "name": "yakumo-version",
   "description": "Update package versions in a Yakumo workspace",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "engines": {
