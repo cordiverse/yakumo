@@ -31,6 +31,6 @@
     "typescript"
   ],
   "peerDependencies": {
-    "yakumo": "^0.2.4"
+    "yakumo": "^0.2.6"
   }
 }

@@ -4,6 +4,7 @@ import ora from 'ora'
 import prompts from 'prompts'
 import which from 'which-pm-runs'
 import yargs from 'yargs-parser'
+import { SpawnOptions } from 'child_process'
 import { promises as fsp } from 'fs'
 import { Module } from 'module'
 import { Dict, makeArray, pick } from 'cosmokit'
@@ -169,9 +170,11 @@ export interface PackageJson extends Partial<Record<DependencyType, Record<strin
   yakumo?: Config
 }
 
-export function spawnAsync(args: string[]) {
-  const child = spawn(args[0], args.slice(1), { cwd, stdio: 'inherit' })
+export function spawnAsync(args: string[], options: SpawnOptions = {}) {
+  const child = spawn(args[0], args.slice(1), { cwd, stdio: 'inherit', ...options })
   return new Promise<number>((resolve) => {
+    child.stderr?.pipe(process.stderr)
+    child.stdout?.pipe(process.stdout)
     child.on('close', resolve)
   })
 }
