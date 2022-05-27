@@ -38,10 +38,14 @@ function getPublishCommand(manager: Manager) {
 function publish(manager: Manager, path: string, name: string, version: string, tag: string) {
   console.log(`publishing ${name}@${version} ...`)
   return spawnAsync([
-    ...getPublishCommand(manager), 'publish', path.slice(1),
+    ...getPublishCommand(manager),
+    'publish', path.slice(1),
     '--tag', tag,
     '--access', 'public',
-  ])
+    '--color',
+  ], {
+    stdio: ['ignore', 'ignore', 'pipe'],
+  })
 }
 
 register('publish', async (project) => {
