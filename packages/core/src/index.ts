@@ -73,7 +73,7 @@ export class Project {
   }
 
   async initialize() {
-    const folders = await globby(meta.workspaces, {
+    const folders = await globby(meta.workspaces || [], {
       cwd,
       deep: 0,
       onlyDirectories: true,
@@ -166,7 +166,7 @@ export interface PackageJson extends Partial<Record<DependencyType, Record<strin
   description?: string
   private?: boolean
   version?: string
-  workspaces: string[]
+  workspaces?: string[]
   yakumo?: Config
 }
 
