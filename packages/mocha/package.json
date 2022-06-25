@@ -1,12 +1,9 @@
 {
   "name": "yakumo-mocha",
   "description": "Mocha support for Yakumo",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
-  "engines": {
-    "node": ">=12.0.0"
-  },
   "files": [
     "lib"
   ],
