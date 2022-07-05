@@ -57,9 +57,10 @@ class Package {
     }
   }
 
-  save() {
+  save(indent: string) {
     this.meta.version = this.version
-    return writeFile(`${cwd}/${this.path}/package.json`, JSON.stringify(this.meta, null, 2))
+    const content = JSON.stringify(this.meta, null, indent) + '\n'
+    return writeFile(`${cwd}/${this.path}/package.json`, content)
   }
 }
 
@@ -113,7 +114,7 @@ class Graph {
       } else {
         console.log(`- ${node.meta.name}: ${cyan(node.meta.version)} => ${green(node.version)}`)
       }
-      return node.save()
+      return node.save(this.project.indent)
     }))
   }
 }

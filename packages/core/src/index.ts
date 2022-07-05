@@ -4,13 +4,15 @@ import ora from 'ora'
 import prompts from 'prompts'
 import which from 'which-pm-runs'
 import yargs from 'yargs-parser'
+import detect from 'detect-indent'
 import { SpawnOptions } from 'child_process'
-import { promises as fsp } from 'fs'
+import { promises as fsp, readFileSync } from 'fs'
 import { Module } from 'module'
 import { Dict, makeArray, pick } from 'cosmokit'
 
 export const cwd = process.cwd()
-export const meta: PackageJson = require(cwd + '/package.json')
+const content = readFileSync(`${cwd}/package.json`, 'utf8')
+export const meta: PackageJson = JSON.parse(content)
 
 export interface Commands {}
 
@@ -65,6 +67,7 @@ export class Project {
   manager: Manager
   targets: Record<string, PackageJson>
   workspaces: Record<string, PackageJson>
+  indent = detect(content).indent
 
   constructor(public argv: Arguments) {
     this.cwd = cwd
@@ -128,7 +131,7 @@ export class Project {
   }
 
   async save(path: string) {
-    const content = JSON.stringify(this.workspaces[path], null, 2) + '\n'
+    const content = JSON.stringify(this.workspaces[path], null, this.indent) + '\n'
     await fsp.writeFile(`${cwd}${path}/package.json`, content)
   }
 }
