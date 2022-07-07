@@ -68,7 +68,7 @@ register('tsc', async (project) => {
         const node = nodes[name]
         if (node.next.size || node.bundle === bundle) continue
         flag = true
-        layer.push(node)
+        layer.unshift(node)
         delete nodes[name]
         node.prev.forEach((prev) => {
           nodes[prev].next.delete(name)
@@ -109,6 +109,6 @@ async function prepareBuild(nodes: Node[]) {
 
 async function bundleNodes(nodes: Node[]) {
   for (const node of nodes) {
-    await build(join(cwd, node.path), ['-p', 'tsconfig.json'])
+    await build(join(cwd, node.path))
   }
 }
