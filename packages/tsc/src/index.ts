@@ -31,10 +31,12 @@ register('tsc', async (project) => {
     const meta = targets[path]
     if (!meta.main) continue
     const fullpath = join(cwd, path)
-    const content = await fsp.readFile(fullpath + '/tsconfig.json', 'utf-8')
-    const config: TsConfig = json5.parse(content)
-    const bundle = !!config.compilerOptions?.outFile
-    nodes[meta.name] = { bundle, path, meta, prev: [], next: new Set() }
+    try {
+      const content = await fsp.readFile(fullpath + '/tsconfig.json', 'utf-8')
+      const config: TsConfig = json5.parse(content)
+      const bundle = !!config.compilerOptions?.outFile
+      nodes[meta.name] = { bundle, path, meta, prev: [], next: new Set() }
+    } catch {}
   }
 
   // Step 2: build dependency graph
