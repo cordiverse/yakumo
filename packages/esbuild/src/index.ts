@@ -1,5 +1,5 @@
 import { build, BuildFailure, BuildOptions, Message, Plugin } from 'esbuild'
-import { resolve, relative } from 'path'
+import { resolve, relative, extname } from 'path'
 import { cyan, red, yellow } from 'kleur'
 import { readFile } from 'fs/promises'
 import { register, PackageJson, Project } from 'yakumo'
@@ -37,7 +37,7 @@ function bundle(options: BuildOptions, index: number) {
   // show entry list
   for (const [key, value] of Object.entries(options.entryPoints)) {
     const source = relative(process.cwd(), value)
-    const target = relative(process.cwd(), resolve(options.outdir, key + '.js'))
+    const target = relative(process.cwd(), resolve(options.outdir, key + options.outExtension['.js'] || '.js'))
     console.log('esbuild:', source, '->', target)
   }
 
@@ -93,10 +93,14 @@ async function compile(path: string, meta: PackageJson, project: Project) {
   const { emitDeclarationOnly } = config.compilerOptions
   if (!emitDeclarationOnly) return
 
+  const ext = extname(meta.main)
   const options: BuildOptions[] = [{
     outdir: base + '/lib',
+    outExtension: {
+      '.js': ext,
+    },
     entryPoints: {
-      [meta.main.slice(4, -3)]: base + '/src/index.ts',
+      [meta.main.slice(4, -ext.length)]: base + '/src/index.ts',
     },
     bundle: true,
     platform: 'node',
@@ -110,10 +114,14 @@ async function compile(path: string, meta: PackageJson, project: Project) {
 
   // bundle for both node and browser
   if (meta.module) {
+    const ext = extname(meta.module)
     options.push({
       ...options[0],
+      outExtension: {
+        '.js': ext,
+      },
       entryPoints: {
-        [meta.module.slice(4, -3)]: base + '/src/index.ts',
+        [meta.module.slice(4, -ext.length)]: base + '/src/index.ts',
       },
       format: 'esm',
       target: 'esnext',
