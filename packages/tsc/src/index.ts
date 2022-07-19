@@ -103,7 +103,7 @@ async function prepareBuild(nodes: Node[]) {
   if (!nodes.length) return
   await fsp.writeFile(cwd + '/tsconfig.temp.json', JSON.stringify({
     files: [],
-    references: nodes.map(node => ({ path: './' + node.path })),
+    references: nodes.map(node => ({ path: '.' + node.path })),
   }, null, 2))
 }
 
