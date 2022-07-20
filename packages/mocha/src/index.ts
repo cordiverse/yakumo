@@ -15,7 +15,7 @@ register('mocha', async (project) => {
   }) : ['**/tests/*.spec.ts']
 
   const mocha = new Mocha()
-  mocha.files = await globby(patterns, { cwd })
+  mocha.files = await globby(patterns, { cwd, ignore: ['node_modules'] })
   mocha.run(failures => process.exit(failures))
 }, {
   manual: true,
