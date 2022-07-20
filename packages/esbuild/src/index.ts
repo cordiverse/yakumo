@@ -8,8 +8,8 @@ import json5 from 'json5'
 
 declare module 'yakumo' {
   interface Hooks {
-    'esbuild.before'(options: BuildOptions[], meta: PackageJson): void
-    'esbuild.after'(options: BuildOptions[], meta: PackageJson): void
+    'esbuild.before'(options: BuildOptions, meta: PackageJson): void
+    'esbuild.after'(options: BuildOptions, meta: PackageJson): void
   }
 }
 
@@ -33,7 +33,7 @@ const displayWarning = display(yellow('warning:'))
 
 let code = 0
 
-function bundle(options: BuildOptions, index: number) {
+function bundle(options: BuildOptions) {
   // show entry list
   for (const [key, value] of Object.entries(options.entryPoints)) {
     const source = relative(process.cwd(), value)
@@ -94,7 +94,7 @@ async function compile(path: string, meta: PackageJson, project: Project) {
   if (!emitDeclarationOnly) return
 
   const ext = extname(meta.main)
-  const options: BuildOptions[] = [{
+  const matrix: BuildOptions[] = [{
     outdir: base + '/lib',
     outExtension: {
       '.js': ext,
@@ -115,8 +115,8 @@ async function compile(path: string, meta: PackageJson, project: Project) {
   // bundle for both node and browser
   if (meta.module) {
     const ext = extname(meta.module)
-    options.push({
-      ...options[0],
+    matrix.push({
+      ...matrix[0],
       outExtension: {
         '.js': ext,
       },
@@ -131,9 +131,11 @@ async function compile(path: string, meta: PackageJson, project: Project) {
     })
   }
 
-  project.emit('esbuild.before', options, meta)
-  await Promise.all(options.map(bundle)).catch(console.error)
-  project.emit('esbuild.after', options, meta)
+  await Promise.all(matrix.map(async (options) => {
+    project.emit('esbuild.before', options, meta)
+    await bundle(options)
+    project.emit('esbuild.after', options, meta)
+  })).catch(console.error)
 }
 
 register('esbuild', async (project) => {
