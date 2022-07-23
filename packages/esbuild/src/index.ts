@@ -70,7 +70,10 @@ async function parseTsConfig(base: string) {
   const config = await readTsConfig(base)
   while (config.extends) {
     const parent = await readTsConfig(resolve(base, '..', config.extends + '.json'))
-    Object.assign(config.compilerOptions, parent.compilerOptions)
+    config.compilerOptions = {
+      ...parent.compilerOptions,
+      ...config.compilerOptions,
+    }
     config.extends = parent.extends
   }
   return config
