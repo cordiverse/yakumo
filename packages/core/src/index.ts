@@ -38,7 +38,9 @@ for (const path of config.require) {
 export function requireSafe(id: string) {
   try {
     return require(id)
-  } catch {}
+  } catch (e) {
+    if (e.code !== 'MODULE_NOT_FOUND') throw e
+  }
 }
 
 export async function confirm(message: string) {
