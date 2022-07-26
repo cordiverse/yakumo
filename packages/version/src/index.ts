@@ -120,14 +120,18 @@ class Graph {
 }
 
 register('version', async (project) => {
-  const graph = new Graph(project)
-
   const flag = (() => {
     for (const type of bumpTypes) {
       if (type in project.argv) return type
     }
   })()
 
+  if (flag === 'version') {
+    // ensure valid version
+    new SemVer(project.argv.version)
+  }
+
+  const graph = new Graph(project)
   for (const path in project.targets) {
     graph.bump(graph.nodes[path], flag)
   }
