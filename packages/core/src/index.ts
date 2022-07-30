@@ -5,6 +5,7 @@ import prompts from 'prompts'
 import which from 'which-pm-runs'
 import yargs from 'yargs-parser'
 import detect from 'detect-indent'
+import { load } from 'js-yaml'
 import { SpawnOptions } from 'child_process'
 import { promises as fsp, readFileSync } from 'fs'
 import { Module } from 'module'
@@ -13,19 +14,6 @@ import { Dict, makeArray, pick } from 'cosmokit'
 export const cwd = process.cwd()
 const content = readFileSync(`${cwd}/package.json`, 'utf8')
 export const meta: PackageJson = JSON.parse(content)
-
-export interface Commands {}
-
-export interface Config {
-  alias?: Dict<string | string[]>
-  commands?: Commands
-}
-
-export const config: Config = {
-  alias: {},
-  commands: {},
-  ...meta.yakumo,
-}
 
 const configRequire = Module.createRequire(cwd + '/package.json')
 
@@ -36,6 +24,30 @@ export function requireSafe(id: string) {
     if (e.code !== 'MODULE_NOT_FOUND') throw e
   }
 }
+
+function loadConfig(): Config {
+  let content: string
+  try {
+    content = readFileSync(`${cwd}/yakumo.yml`, 'utf8')
+  } catch {}
+
+  return {
+    alias: {},
+    require: [],
+    commands: {},
+    ...content && load(content) as any,
+  }
+}
+
+export interface Commands {}
+
+export interface Config {
+  alias?: Dict<string | string[]>
+  require?: string[]
+  commands?: Commands
+}
+
+export const config = loadConfig()
 
 export async function confirm(message: string) {
   const { value } = await prompts({
