@@ -14,9 +14,21 @@ register('mocha', async (project) => {
     })
   }) : ['**/tests/*.spec.ts']
 
+  for (const filename of argv.require || []) {
+    project.require(filename)
+  }
+
   const mocha = new Mocha()
   mocha.files = await globby(patterns, { cwd, ignore: ['node_modules'] })
   mocha.run(failures => process.exit(failures))
 }, {
   manual: true,
+  string: ['require'],
+  array: ['require'],
+  alias: {
+    require: ['r'],
+  },
+  configuration: {
+    'greedy-arrays': false,
+  },
 })
