@@ -18,22 +18,16 @@ export interface Commands {}
 
 export interface Config {
   alias?: Dict<string | string[]>
-  require?: string[]
   commands?: Commands
 }
 
 export const config: Config = {
   alias: {},
-  require: [],
   commands: {},
   ...meta.yakumo,
 }
 
 const configRequire = Module.createRequire(cwd + '/package.json')
-
-for (const path of config.require) {
-  configRequire(path)
-}
 
 export function requireSafe(id: string) {
   try {
@@ -49,7 +43,7 @@ export async function confirm(message: string) {
     type: 'confirm',
     message,
   })
-  return value
+  return value as boolean
 }
 
 export function exit(message: string) {
@@ -75,6 +69,10 @@ export class Project {
     this.cwd = cwd
     this.config = config
     this.manager = which()
+  }
+
+  require(id: string) {
+    return configRequire(id)
   }
 
   async initialize() {
