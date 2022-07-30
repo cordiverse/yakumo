@@ -1,7 +1,7 @@
 import { writeFile } from 'fs-extra'
 import { gt, SemVer } from 'semver'
 import { cyan, green } from 'kleur'
-import { register, cwd, PackageJson, Project } from 'yakumo'
+import { confirm, register, cwd, PackageJson, Project } from 'yakumo'
 
 const bumpTypes = ['major', 'minor', 'patch', 'prerelease', 'version'] as const
 type BumpType = typeof bumpTypes[number]
@@ -120,6 +120,11 @@ class Graph {
 }
 
 register('version', async (project) => {
+  if (!project.argv._.length) {
+    const yes = await confirm('You did not specify any packages to bump. Do you want to bump all the packages?')
+    if (!yes) return
+  }
+
   const flag = (() => {
     for (const type of bumpTypes) {
       if (type in project.argv) return type
