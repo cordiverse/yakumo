@@ -37,7 +37,7 @@ for (const path of config.require) {
 
 export function requireSafe(id: string) {
   try {
-    return require(id)
+    return configRequire(id)
   } catch (e) {
     if (e.code !== 'MODULE_NOT_FOUND') throw e
   }

@@ -28,7 +28,7 @@
     "typescript"
   ],
   "peerDependencies": {
-    "yakumo": "^0.2.9"
+    "yakumo": "^0.2.10"
   },
   "dependencies": {
     "dtsc": "^2.1.1",
