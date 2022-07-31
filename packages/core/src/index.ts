@@ -178,6 +178,7 @@ export interface PackageJson extends Partial<Record<DependencyType, Record<strin
   name: string
   main?: string
   module?: string
+  bin?: string | Dict<string>
   description?: string
   private?: boolean
   version?: string

@@ -1,8 +1,8 @@
 import { build, BuildFailure, BuildOptions, Message, Plugin } from 'esbuild'
-import { resolve, relative, extname } from 'path'
 import { cyan, red, yellow } from 'kleur'
-import { readFile } from 'fs/promises'
+import { promises as fsp } from 'fs'
 import { register, PackageJson, Project } from 'yakumo'
+import path from 'path'
 import ts from 'typescript'
 import json5 from 'json5'
 
@@ -36,8 +36,8 @@ let code = 0
 function bundle(options: BuildOptions) {
   // show entry list
   for (const [key, value] of Object.entries(options.entryPoints)) {
-    const source = relative(process.cwd(), value)
-    const target = relative(process.cwd(), resolve(options.outdir, key + options.outExtension['.js'] || '.js'))
+    const source = path.relative(process.cwd(), value)
+    const target = path.relative(process.cwd(), path.resolve(options.outdir, key + options.outExtension['.js']))
     console.log('esbuild:', source, '->', target)
   }
 
@@ -62,14 +62,14 @@ export interface TsConfig {
 }
 
 async function readTsConfig(base: string) {
-  const source = await readFile(base, 'utf8')
+  const source = await fsp.readFile(base, 'utf8')
   return json5.parse(source) as TsConfig
 }
 
 async function parseTsConfig(base: string) {
   const config = await readTsConfig(base)
   while (config.extends) {
-    const parent = await readTsConfig(resolve(base, '..', config.extends + '.json'))
+    const parent = await readTsConfig(path.resolve(base, '..', config.extends + '.json'))
     config.compilerOptions = {
       ...parent.compilerOptions,
       ...config.compilerOptions,
@@ -79,9 +79,9 @@ async function parseTsConfig(base: string) {
   return config
 }
 
-async function compile(path: string, meta: PackageJson, project: Project) {
+async function compile(relpath: string, meta: PackageJson, project: Project) {
   // filter out private packages
-  if (meta.private) return
+  if (meta.private) return []
 
   const filter = /^[@/\w-]+$/
   const externalPlugin: Plugin = {
@@ -91,59 +91,74 @@ async function compile(path: string, meta: PackageJson, project: Project) {
     },
   }
 
-  const base = project.cwd + path
+  const base = project.cwd + relpath
   const config = await parseTsConfig(base + '/tsconfig.json')
-  const { emitDeclarationOnly } = config.compilerOptions
-  if (!emitDeclarationOnly) return
+  const { rootDir, emitDeclarationOnly } = config.compilerOptions
+  if (!emitDeclarationOnly) return []
 
-  const ext = extname(meta.main)
-  const matrix: BuildOptions[] = [{
-    outdir: base + '/lib',
-    outExtension: {
-      '.js': ext,
-    },
-    entryPoints: {
-      [meta.main.slice(4, -ext.length)]: base + '/src/index.ts',
-    },
-    bundle: true,
-    platform: 'node',
-    target: 'node12',
-    charset: 'utf8',
-    logLevel: 'silent',
-    sourcemap: true,
-    keepNames: true,
-    plugins: [externalPlugin],
-  }]
+  const matrix: BuildOptions[] = []
 
-  // bundle for both node and browser
-  if (meta.module) {
-    const ext = extname(meta.module)
+  function addBuild(name: string, options: BuildOptions) {
+    if (!name) return
+    let [outDir] = name.split('/', 1)
+    let entry = name.slice(outDir.length + 1)
+    if (!entry) [outDir, entry] = [entry, outDir]
+    const extname = path.extname(entry)
+    const basename = entry.slice(0, -extname.length)
     matrix.push({
-      ...matrix[0],
+      outdir: path.join(base, outDir),
+      outbase: path.join(base, rootDir),
       outExtension: {
-        '.js': ext,
+        '.js': extname,
       },
       entryPoints: {
-        [meta.module.slice(4, -ext.length)]: base + '/src/index.ts',
+        [basename]: path.join(base, rootDir, basename + '.ts'),
       },
-      format: 'esm',
-      target: 'esnext',
-      platform: 'browser',
-      sourcemap: false,
-      minify: true,
+      bundle: true,
+      sourcemap: true,
+      keepNames: true,
+      charset: 'utf8',
+      logLevel: 'silent',
+      plugins: [externalPlugin],
+      resolveExtensions: ['.tsx', '.ts', '.jsx', '.js', '.css', '.json'],
+      ...options,
     })
   }
 
-  await Promise.all(matrix.map(async (options) => {
-    project.emit('esbuild.before', options, meta)
-    await bundle(options)
-    project.emit('esbuild.after', options, meta)
-  })).catch(console.error)
+  const nodeOptions: BuildOptions = {
+    platform: 'node',
+    target: 'node12',
+    format: 'cjs',
+  }
+
+  const browserOptions: BuildOptions = {
+    platform: 'browser',
+    target: 'esnext',
+    format: 'esm',
+  }
+
+  addBuild(meta.main, nodeOptions)
+  addBuild(meta.module, browserOptions)
+
+  if (typeof meta.bin === 'string') {
+    addBuild(meta.bin, nodeOptions)
+  } else if (meta.bin) {
+    for (const key in meta.bin) {
+      addBuild(meta.bin[key], nodeOptions)
+    }
+  }
+
+  return matrix
 }
 
 register('esbuild', async (project) => {
-  await Promise.all(Object.entries(project.targets).map(([key, value]) => {
-    return compile(key, value, project)
+  await Promise.all(Object.entries(project.targets).map(async ([key, value]) => {
+    const matrix = await compile(key, value, project)
+    await Promise.all(matrix.map(async (options) => {
+      project.emit('esbuild.before', options, value)
+      await bundle(options)
+      project.emit('esbuild.after', options, value)
+    })).catch(console.error)
   }))
   process.exit(code)
 })
