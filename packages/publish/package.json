@@ -30,7 +30,7 @@
   },
   "devDependencies": {
     "@types/prompts": "^2.4.0",
-    "@types/semver": "^7.3.9"
+    "@types/semver": "^7.3.10"
   },
   "dependencies": {
     "latest-version": "^5.1.0",
