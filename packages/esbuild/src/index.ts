@@ -2,6 +2,7 @@ import { build, BuildFailure, BuildOptions, Message, Plugin } from 'esbuild'
 import { cyan, red, yellow } from 'kleur'
 import { promises as fsp } from 'fs'
 import { register, PackageJson, Project } from 'yakumo'
+import { Module } from 'module'
 import path from 'path'
 import ts from 'typescript'
 import json5 from 'json5'
@@ -84,10 +85,21 @@ async function compile(relpath: string, meta: PackageJson, project: Project) {
   if (meta.private) return []
 
   const filter = /^[@/\w-]+$/
+  const entryPoints = new Set<string>()
   const externalPlugin: Plugin = {
     name: 'external library',
     setup(build) {
       build.onResolve({ filter }, () => ({ external: true }))
+      build.onResolve({ filter: /^\./ }, (args) => {
+        const require = Object.create(Module.createRequire(args.importer))
+        require.extensions = Object.create(require.extensions)
+        for (const ext of build.initialOptions.resolveExtensions) {
+          require.extensions[ext] = () => {}
+        }
+        const path = require.resolve(args.path)
+        if (!entryPoints.has(path)) return null
+        return { external: true }
+      })
     },
   }
 
@@ -105,15 +117,13 @@ async function compile(relpath: string, meta: PackageJson, project: Project) {
     if (!entry) [outDir, entry] = [entry, outDir]
     const extname = path.extname(entry)
     const basename = entry.slice(0, -extname.length)
+    const filename = path.join(base, rootDir, basename + '.ts')
+    entryPoints.add(filename)
     matrix.push({
       outdir: path.join(base, outDir),
       outbase: path.join(base, rootDir),
-      outExtension: {
-        '.js': extname,
-      },
-      entryPoints: {
-        [basename]: path.join(base, rootDir, basename + '.ts'),
-      },
+      outExtension: { '.js': extname },
+      entryPoints: { [basename]: filename },
       bundle: true,
       sourcemap: true,
       keepNames: true,
