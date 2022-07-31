@@ -90,14 +90,14 @@ async function compile(relpath: string, meta: PackageJson, project: Project) {
     name: 'external library',
     setup(build) {
       build.onResolve({ filter }, () => ({ external: true }))
-      build.onResolve({ filter: /^\./ }, (args) => {
-        const require = Object.create(Module.createRequire(args.importer))
-        require.extensions = Object.create(require.extensions)
-        for (const ext of build.initialOptions.resolveExtensions) {
-          require.extensions[ext] = () => {}
-        }
-        const path = require.resolve(args.path)
-        if (!entryPoints.has(path)) return null
+      build.onResolve({ filter: /^\./, namespace: 'file' }, async (args) => {
+        const result = await build.resolve(args.path, {
+          namespace: 'internal',
+          importer: args.importer,
+          resolveDir: args.resolveDir,
+          kind: args.kind,
+        })
+        if (!entryPoints.has(result.path)) return null
         return { external: true }
       })
     },
