@@ -1,0 +1,39 @@
+{
+  "name": "yakumo-esbuild-yaml",
+  "description": "Yaml support for yakumo esbuild",
+  "version": "0.3.0",
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
+  "engines": {
+    "node": ">=12.0.0"
+  },
+  "files": [
+    "lib"
+  ],
+  "author": "Shigma <shigma10826@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/koishijs/scripts.git",
+    "directory": "packages/esbuild-yaml"
+  },
+  "bugs": {
+    "url": "https://github.com/koishijs/scripts/issues"
+  },
+  "homepage": "https://koishi.js.org",
+  "keywords": [
+    "yakumo",
+    "plugin",
+    "extension",
+    "yaml",
+    "esbuild",
+    "compile"
+  ],
+  "peerDependencies": {
+    "yakumo": "^0.3.1",
+    "yakumo-esbuild": "^0.3.3"
+  },
+  "dependencies": {
+    "js-yaml": "^4.1.0"
+  }
+}
