@@ -15,7 +15,7 @@ export const cwd = process.cwd()
 const content = readFileSync(`${cwd}/package.json`, 'utf8')
 export const meta: PackageJson = JSON.parse(content)
 
-const configRequire = Module.createRequire(cwd + '/package.json')
+export const configRequire = Module.createRequire(cwd + '/package.json')
 
 export function requireSafe(id: string) {
   try {

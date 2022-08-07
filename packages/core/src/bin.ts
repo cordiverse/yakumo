@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { commands, config, Project, requireSafe, Arguments } from '.'
+import { commands, config, configRequire, Project, requireSafe, Arguments } from '.'
 import parse from 'yargs-parser'
 
 if (process.argv.length <= 2) {
@@ -11,7 +11,7 @@ if (process.argv.length <= 2) {
 const name = process.argv[2]
 
 for (const filename of config.require) {
-  requireSafe(filename)
+  configRequire(filename)
 }
 
 requireSafe('yakumo-' + name)
