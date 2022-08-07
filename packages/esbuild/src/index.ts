@@ -89,15 +89,16 @@ async function compile(relpath: string, meta: PackageJson, project: Project) {
   const externalPlugin: Plugin = {
     name: 'external library',
     setup(build) {
+      const currentEntry = Object.values(build.initialOptions.entryPoints)[0]
       build.onResolve({ filter }, () => ({ external: true }))
       build.onResolve({ filter: /^\./, namespace: 'file' }, async (args) => {
-        const result = await build.resolve(args.path, {
+        const { path } = await build.resolve(args.path, {
           namespace: 'internal',
           importer: args.importer,
           resolveDir: args.resolveDir,
           kind: args.kind,
         })
-        if (!entryPoints.has(result.path)) return null
+        if (currentEntry === path || !entryPoints.has(path)) return null
         return { external: true }
       })
     },
