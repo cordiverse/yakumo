@@ -1,6 +1,6 @@
 {
-  "name": "yakumo-esbuild-yaml",
-  "description": "Yaml support for yakumo esbuild",
+  "name": "yakumo-publish-sync",
+  "description": "Sync other registry after publish",
   "version": "0.3.1",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
@@ -15,7 +15,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/shigma/yakumo.git",
-    "directory": "packages/esbuild-yaml"
+    "directory": "packages/publish-sync"
   },
   "bugs": {
     "url": "https://github.com/shigma/yakumo/issues"
@@ -25,15 +25,15 @@
     "yakumo",
     "plugin",
     "extension",
-    "yaml",
-    "esbuild",
-    "compile"
+    "publish",
+    "sync",
+    "registry"
   ],
   "peerDependencies": {
     "yakumo": "^0.3.2",
-    "yakumo-esbuild": "^0.3.5"
+    "yakumo-publish": "^0.3.0"
   },
   "dependencies": {
-    "js-yaml": "^4.1.0"
+    "axios": "^0.27.2"
   }
 }
