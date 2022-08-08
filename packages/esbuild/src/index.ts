@@ -1,7 +1,7 @@
 import { build, BuildFailure, BuildOptions, Message, Plugin } from 'esbuild'
 import { cyan, red, yellow } from 'kleur'
 import { register, PackageJson, Project } from 'yakumo'
-import tsconfig from 'tsconfig-utils'
+import { load } from 'tsconfig-utils'
 import path from 'path'
 
 declare module 'yakumo' {
@@ -73,9 +73,9 @@ async function compile(relpath: string, meta: PackageJson, project: Project) {
   }
 
   const base = project.cwd + relpath
-  const config = await tsconfig(base + '/tsconfig.json')
-  const { rootDir, emitDeclarationOnly } = config.compilerOptions
-  if (!emitDeclarationOnly) return []
+  const config = await load(base)
+  const { rootDir, noEmit, emitDeclarationOnly } = config.compilerOptions
+  if (!noEmit && !emitDeclarationOnly) return []
 
   const matrix: BuildOptions[] = []
 

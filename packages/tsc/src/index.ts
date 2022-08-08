@@ -1,8 +1,9 @@
 import { promises as fsp } from 'fs'
 import { join } from 'path'
 import { register, cwd, PackageJson, spawnAsync } from 'yakumo'
-import { build } from 'dtsc'
-import tsconfig from 'tsconfig-utils'
+import { load } from 'tsconfig-utils'
+import * as atsc from 'atsc'
+import * as dtsc from 'dtsc'
 
 interface Node {
   bundle: boolean
@@ -21,7 +22,7 @@ register('tsc', async (project) => {
     if (!meta.main) continue
     const fullpath = join(cwd, path)
     try {
-      const config = await tsconfig(fullpath + '/tsconfig.json')
+      const config = await load(fullpath)
       const bundle = !!config.compilerOptions?.outFile
       nodes[meta.name] = { bundle, path, meta, prev: [], next: new Set() }
     } catch {}
@@ -76,6 +77,7 @@ register('tsc', async (project) => {
   for (let i = 0; i < layers.length; i += 2) {
     const bundleTargets = layers[i]
     const buildTargets = layers[i + 1]
+    const tasks = buildTargets.map(node => atsc.build(join(cwd, node.path)))
     await Promise.all([
       prepareBuild(buildTargets),
       bundleNodes(bundleTargets),
@@ -84,6 +86,7 @@ register('tsc', async (project) => {
       const code = await spawnAsync(['tsc', '-b', 'tsconfig.temp.json'])
       if (code) process.exit(code)
     }
+    await Promise.all(tasks)
   }
 })
 
@@ -97,6 +100,6 @@ async function prepareBuild(nodes: Node[]) {
 
 async function bundleNodes(nodes: Node[]) {
   for (const node of nodes) {
-    await build(join(cwd, node.path))
+    await dtsc.build(join(cwd, node.path))
   }
 }
