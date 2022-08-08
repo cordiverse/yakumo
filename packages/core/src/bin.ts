@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { commands, config, configRequire, Project, requireSafe, Arguments } from '.'
+import { commands, config, configRequire, Project, requireSafe, Arguments, register } from '.'
 import parse from 'yargs-parser'
 
 if (process.argv.length <= 2) {
@@ -14,17 +14,28 @@ for (const filename of config.require) {
   configRequire(filename)
 }
 
-requireSafe('yakumo-' + name)
-
-if (!commands[name]) {
-  throw new Error(`unknown command: "${name}"`)
+for (const name in config.pipeline) {
+  register(name, async () => {
+    const tasks = config.pipeline[name]
+    for (const task of tasks) {
+      await execute(task)
+    }
+  })
 }
 
-;(async () => {
+const project = new Project()
+
+async function execute(name: string) {
+  requireSafe('yakumo-' + name)
+  if (!commands[name]) {
+    throw new Error(`unknown command: "${name}"`)
+  }
+
   const [callback, options] = commands[name]
   const argv = parse(process.argv.slice(3), options) as Arguments
   argv.config = options
-  const project = new Project(argv)
-  await project.initialize()
+  await project.initialize(argv)
   return callback(project)
-})()
+}
+
+execute(name)

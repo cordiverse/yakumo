@@ -1,15 +1,13 @@
-import spawn from 'cross-spawn'
 import globby from 'globby'
-import ora from 'ora'
-import prompts from 'prompts'
 import which from 'which-pm-runs'
 import yargs from 'yargs-parser'
 import detect from 'detect-indent'
 import { load } from 'js-yaml'
-import { SpawnOptions } from 'child_process'
 import { promises as fsp, readFileSync } from 'fs'
 import { Module } from 'module'
-import { Dict, makeArray, pick } from 'cosmokit'
+import { Awaitable, Dict, makeArray, pick } from 'cosmokit'
+
+export * from './utils'
 
 export const cwd = process.cwd()
 const content = readFileSync(`${cwd}/package.json`, 'utf8')
@@ -25,7 +23,7 @@ export function requireSafe(id: string) {
   }
 }
 
-function loadConfig(): Config {
+function loadConfig(): ProjectConfig {
   let content: string
   try {
     content = readFileSync(`${cwd}/yakumo.yml`, 'utf8')
@@ -41,28 +39,16 @@ function loadConfig(): Config {
 
 export interface Commands {}
 
-export interface Config {
+export interface PackageConfig {}
+
+export interface ProjectConfig {
   alias?: Dict<string | string[]>
   require?: string[]
   commands?: Commands
+  pipeline?: Dict<string[]>
 }
 
 export const config = loadConfig()
-
-export async function confirm(message: string) {
-  const { value } = await prompts({
-    name: 'value',
-    type: 'confirm',
-    message,
-  })
-  return value as boolean
-}
-
-export function exit(message: string) {
-  const spinner = ora()
-  spinner.info(message)
-  return process.exit(0)
-}
 
 export interface Manager {
   name: string
@@ -71,13 +57,14 @@ export interface Manager {
 
 export class Project {
   cwd: string
-  config: Config
+  argv: Arguments
+  config: ProjectConfig
   manager: Manager
   targets: Record<string, PackageJson>
   workspaces: Record<string, PackageJson>
   indent = detect(content).indent
 
-  constructor(public argv: Arguments) {
+  constructor() {
     this.cwd = cwd
     this.config = config
     this.manager = which()
@@ -87,7 +74,8 @@ export class Project {
     return configRequire(id)
   }
 
-  async initialize() {
+  async initialize(argv: Arguments) {
+    this.argv = argv
     const folders = await globby(meta.workspaces || [], {
       cwd,
       deep: 0,
@@ -103,12 +91,12 @@ export class Project {
       } catch {}
     }).filter(Boolean))
 
-    if (!this.argv._.length || this.argv.config.manual) {
+    if (!argv._.length || argv.config.manual) {
       this.targets = { ...this.workspaces }
       return
     }
 
-    this.targets = pick(this.workspaces, this.argv._.flatMap((name: string) => {
+    this.targets = pick(this.workspaces, argv._.flatMap((name: string) => {
       return this.locate(name)
     }))
   }
@@ -156,7 +144,7 @@ export function addHook<K extends keyof Hooks>(name: K, callback: Hooks[K]) {
   (hooks[name] ||= [] as never).push(callback)
 }
 
-type CommandCallback = (project: Project) => void
+type CommandCallback = (project: Project) => Awaitable<void>
 
 export interface Arguments extends yargs.Arguments {
   config: Options
@@ -183,14 +171,5 @@ export interface PackageJson extends Partial<Record<DependencyType, Record<strin
   private?: boolean
   version?: string
   workspaces?: string[]
-  yakumo?: Config
-}
-
-export function spawnAsync(args: string[], options: SpawnOptions = {}) {
-  const child = spawn(args[0], args.slice(1), { cwd, stdio: 'inherit', ...options })
-  return new Promise<number>((resolve) => {
-    child.stderr?.pipe(process.stderr)
-    child.stdout?.pipe(process.stdout)
-    child.on('close', resolve)
-  })
+  yakumo?: PackageConfig
 }
