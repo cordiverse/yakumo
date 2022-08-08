@@ -1,11 +1,8 @@
 import { build, BuildFailure, BuildOptions, Message, Plugin } from 'esbuild'
 import { cyan, red, yellow } from 'kleur'
-import { promises as fsp } from 'fs'
 import { register, PackageJson, Project } from 'yakumo'
-import { Module } from 'module'
+import tsconfig from 'tsconfig-utils'
 import path from 'path'
-import ts from 'typescript'
-import json5 from 'json5'
 
 declare module 'yakumo' {
   interface Hooks {
@@ -51,35 +48,6 @@ function bundle(options: BuildOptions) {
   })
 }
 
-interface Reference {
-  path: string
-}
-
-export interface TsConfig {
-  extends?: string
-  files?: string[]
-  references?: Reference[]
-  compilerOptions?: ts.CompilerOptions
-}
-
-async function readTsConfig(base: string) {
-  const source = await fsp.readFile(base, 'utf8')
-  return json5.parse(source) as TsConfig
-}
-
-async function parseTsConfig(base: string) {
-  const config = await readTsConfig(base)
-  while (config.extends) {
-    const parent = await readTsConfig(path.resolve(base, '..', config.extends + '.json'))
-    config.compilerOptions = {
-      ...parent.compilerOptions,
-      ...config.compilerOptions,
-    }
-    config.extends = parent.extends
-  }
-  return config
-}
-
 async function compile(relpath: string, meta: PackageJson, project: Project) {
   // filter out private packages
   if (meta.private) return []
@@ -105,7 +73,7 @@ async function compile(relpath: string, meta: PackageJson, project: Project) {
   }
 
   const base = project.cwd + relpath
-  const config = await parseTsConfig(base + '/tsconfig.json')
+  const config = await tsconfig(base + '/tsconfig.json')
   const { rootDir, emitDeclarationOnly } = config.compilerOptions
   if (!emitDeclarationOnly) return []
 
@@ -166,9 +134,9 @@ register('esbuild', async (project) => {
   await Promise.all(Object.entries(project.targets).map(async ([key, value]) => {
     const matrix = await compile(key, value, project)
     await Promise.all(matrix.map(async (options) => {
-      project.emit('esbuild.before', options, value)
+      await project.emit('esbuild.before', options, value)
       await bundle(options)
-      project.emit('esbuild.after', options, value)
+      await project.emit('esbuild.after', options, value)
     })).catch(console.error)
   }))
   process.exit(code)

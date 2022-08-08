@@ -2,8 +2,7 @@ import { promises as fsp } from 'fs'
 import { join } from 'path'
 import { register, cwd, PackageJson, spawnAsync } from 'yakumo'
 import { build } from 'dtsc'
-import json5 from 'json5'
-import ts from 'typescript'
+import tsconfig from 'tsconfig-utils'
 
 interface Node {
   bundle: boolean
@@ -11,16 +10,6 @@ interface Node {
   meta: PackageJson
   prev: string[]
   next: Set<string>
-}
-
-interface Reference {
-  path: string
-}
-
-interface TsConfig {
-  files?: string[]
-  references?: Reference[]
-  compilerOptions?: ts.CompilerOptions
 }
 
 register('tsc', async (project) => {
@@ -32,8 +21,7 @@ register('tsc', async (project) => {
     if (!meta.main) continue
     const fullpath = join(cwd, path)
     try {
-      const content = await fsp.readFile(fullpath + '/tsconfig.json', 'utf-8')
-      const config: TsConfig = json5.parse(content)
+      const config = await tsconfig(fullpath + '/tsconfig.json')
       const bundle = !!config.compilerOptions?.outFile
       nodes[meta.name] = { bundle, path, meta, prev: [], next: new Set() }
     } catch {}
