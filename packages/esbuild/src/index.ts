@@ -2,6 +2,7 @@ import { build, BuildFailure, BuildOptions, Message, Plugin } from 'esbuild'
 import { cyan, red, yellow } from 'kleur'
 import { register, PackageJson, Project } from 'yakumo'
 import { load } from 'tsconfig-utils'
+import globby from 'globby'
 import path from 'path'
 
 declare module 'yakumo' {
@@ -53,7 +54,6 @@ async function compile(relpath: string, meta: PackageJson, project: Project) {
   if (meta.private) return []
 
   const filter = /^[@/\w-]+$/
-  const entryPoints = new Set<string>()
   const externalPlugin: Plugin = {
     name: 'external library',
     setup(build) {
@@ -74,35 +74,8 @@ async function compile(relpath: string, meta: PackageJson, project: Project) {
 
   const base = project.cwd + relpath
   const config = await load(base)
-  const { rootDir, noEmit, emitDeclarationOnly } = config.compilerOptions
+  const { rootDir, outFile, outDir = path.dirname(outFile), noEmit, emitDeclarationOnly } = config.compilerOptions
   if (!noEmit && !emitDeclarationOnly) return []
-
-  const matrix: BuildOptions[] = []
-
-  function addBuild(name: string, options: BuildOptions) {
-    if (!name) return
-    let [outDir] = name.split('/', 1)
-    let entry = name.slice(outDir.length + 1)
-    if (!entry) [outDir, entry] = [entry, outDir]
-    const extname = path.extname(entry)
-    const basename = entry.slice(0, -extname.length)
-    const filename = path.join(base, rootDir, basename + '.ts')
-    entryPoints.add(filename)
-    matrix.push({
-      outdir: path.join(base, outDir),
-      outbase: path.join(base, rootDir),
-      outExtension: { '.js': extname },
-      entryPoints: { [basename]: filename },
-      bundle: true,
-      sourcemap: true,
-      keepNames: true,
-      charset: 'utf8',
-      logLevel: 'silent',
-      plugins: [externalPlugin],
-      resolveExtensions: ['.tsx', '.ts', '.jsx', '.js', '.css', '.json'],
-      ...options,
-    })
-  }
 
   const nodeOptions: BuildOptions = {
     platform: 'node',
@@ -116,14 +89,58 @@ async function compile(relpath: string, meta: PackageJson, project: Project) {
     format: 'esm',
   }
 
-  addBuild(meta.main, nodeOptions)
-  addBuild(meta.module, browserOptions)
+  const outdir = path.join(base, outDir)
+  const outbase = path.join(base, rootDir)
+  const matrix: BuildOptions[] = []
+  const entryPoints = new Set<string>()
+
+  function addEntry(pattern: string, options: BuildOptions) {
+    if (!pattern) return
+    if (pattern.startsWith('./')) pattern = pattern.slice(2)
+    if (!pattern.startsWith(outDir + '/')) return
+    // https://nodejs.org/api/packages.html#subpath-patterns
+    // `*` maps expose nested subpaths as it is a string replacement syntax only
+    const outExt = path.extname(pattern)
+    pattern = pattern.slice(outDir.length + 1, -outExt.length).replace('*', '**') + '.{ts,tsx}'
+    const targets = globby.sync(pattern, { cwd: outbase })
+    for (const target of targets) {
+      const filename = path.join(base, rootDir, target)
+      if (entryPoints.has(filename)) return
+
+      const srcExt = path.extname(target)
+      const entry = target.slice(0, -srcExt.length)
+      entryPoints.add(filename)
+      matrix.push({
+        outdir,
+        outbase,
+        outExtension: { '.js': outExt },
+        entryPoints: { [entry]: filename },
+        bundle: true,
+        sourcemap: true,
+        keepNames: true,
+        charset: 'utf8',
+        logLevel: 'silent',
+        plugins: [externalPlugin],
+        resolveExtensions: ['.tsx', '.ts', '.jsx', '.js', '.css', '.json'],
+        ...options,
+      })
+    }
+  }
+
+  addEntry(meta.main, nodeOptions)
+  addEntry(meta.module, browserOptions)
+
+  // TODO: support conditional exports
+  // TODO: support null targets
+  for (const path in meta.exports || {}) {
+    addEntry(meta.exports[path], nodeOptions)
+  }
 
   if (typeof meta.bin === 'string') {
-    addBuild(meta.bin, nodeOptions)
+    addEntry(meta.bin, nodeOptions)
   } else if (meta.bin) {
     for (const key in meta.bin) {
-      addBuild(meta.bin[key], nodeOptions)
+      addEntry(meta.bin[key], nodeOptions)
     }
   }
 
