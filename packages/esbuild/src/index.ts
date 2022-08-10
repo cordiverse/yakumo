@@ -44,7 +44,7 @@ function bundle(options: BuildOptions) {
   }, ({ warnings, errors }: BuildFailure) => {
     errors.forEach(displayError)
     warnings.forEach(displayWarning)
-    if (errors.length) code = 1
+    code += errors.length
   })
 }
 
@@ -139,5 +139,5 @@ register('esbuild', async (project) => {
       await project.emit('esbuild.after', options, value)
     })).catch(console.error)
   }))
-  process.exit(code)
+  if (code) process.exit(code)
 })
