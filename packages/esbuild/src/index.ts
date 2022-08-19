@@ -66,7 +66,7 @@ async function compile(relpath: string, meta: PackageJson, project: Project) {
           resolveDir: args.resolveDir,
           kind: args.kind,
         })
-        if (currentEntry === path || !entryPoints.has(path)) return null
+        if (currentEntry === path || !srcFiles.has(path)) return null
         return { external: true }
       })
     },
@@ -92,7 +92,8 @@ async function compile(relpath: string, meta: PackageJson, project: Project) {
   const outdir = path.join(base, outDir)
   const outbase = path.join(base, rootDir)
   const matrix: BuildOptions[] = []
-  const entryPoints = new Set<string>()
+  const srcFiles = new Set<string>()
+  const outFiles = new Set<string>()
 
   function addEntry(pattern: string, options: BuildOptions) {
     if (!pattern) return
@@ -104,17 +105,19 @@ async function compile(relpath: string, meta: PackageJson, project: Project) {
     pattern = pattern.slice(outDir.length + 1, -outExt.length).replace('*', '**') + '.{ts,tsx}'
     const targets = globby.sync(pattern, { cwd: outbase })
     for (const target of targets) {
-      const filename = path.join(base, rootDir, target)
-      if (entryPoints.has(filename)) return
-
+      const srcFile = path.join(base, rootDir, target)
       const srcExt = path.extname(target)
       const entry = target.slice(0, -srcExt.length)
-      entryPoints.add(filename)
+      const outFile = path.join(outdir, entry + outExt)
+      if (outFiles.has(outFile)) return
+
+      outFiles.add(outFile)
+      srcFiles.add(srcFile)
       matrix.push({
         outdir,
         outbase,
         outExtension: { '.js': outExt },
-        entryPoints: { [entry]: filename },
+        entryPoints: { [entry]: srcFile },
         bundle: true,
         sourcemap: true,
         keepNames: true,
