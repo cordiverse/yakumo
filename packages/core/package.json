@@ -1,7 +1,7 @@
 {
   "name": "yakumo",
   "description": "Manage complex workspaces with ease",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "engines": {
@@ -30,7 +30,6 @@
     "script"
   ],
   "devDependencies": {
-    "@types/cross-spawn": "^6.0.2",
     "@types/js-yaml": "^4.0.5",
     "@types/prompts": "^2.4.0",
     "@types/which-pm-runs": "^1.0.0",
@@ -38,7 +37,6 @@
   },
   "dependencies": {
     "cosmokit": "^1.2.1",
-    "cross-spawn": "^7.0.3",
     "detect-indent": "^6.1.0",
     "globby": "^11.1.0",
     "js-yaml": "^4.1.0",

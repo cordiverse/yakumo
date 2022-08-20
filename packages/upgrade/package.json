@@ -1,7 +1,7 @@
 {
   "name": "yakumo-upgrade",
   "description": "Upgrade package dependencies in a Yakumo workspace",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "files": [
@@ -28,7 +28,7 @@
     "dependency"
   ],
   "peerDependencies": {
-    "yakumo": "^0.3.3"
+    "yakumo": "^0.3.4"
   },
   "devDependencies": {
     "@types/semver": "^7.3.10"

@@ -1,7 +1,6 @@
-import { DependencyType, register, PackageJson } from 'yakumo'
+import { DependencyType, register, PackageJson, spawnAsync } from 'yakumo'
 import { cyan, green, yellow } from 'kleur'
 import { gt } from 'semver'
-import spawn from 'cross-spawn'
 import latest from 'latest-version'
 import pMap from 'p-map'
 import ora from 'ora'
@@ -61,7 +60,8 @@ register('upgrade', async (project) => {
 
   const agent = manager?.name || 'npm'
   const args: string[] = agent === 'yarn' ? [] : ['install']
-  spawn.sync(agent, args, { stdio: 'inherit' })
+  const code = await spawnAsync([agent, ...args])
+  if (code) process.exit(code)
 
   function load(path: string, meta: PackageJson) {
     delete deps[meta.name]

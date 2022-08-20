@@ -26,7 +26,7 @@
     "publish"
   ],
   "peerDependencies": {
-    "yakumo": "^0.3.3"
+    "yakumo": "^0.3.4"
   },
   "devDependencies": {
     "@types/prompts": "^2.4.0",

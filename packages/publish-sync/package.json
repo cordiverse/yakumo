@@ -30,7 +30,7 @@
     "registry"
   ],
   "peerDependencies": {
-    "yakumo": "^0.3.3",
+    "yakumo": "^0.3.4",
     "yakumo-publish": "^0.3.0"
   },
   "dependencies": {

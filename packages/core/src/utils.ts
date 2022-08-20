@@ -1,7 +1,7 @@
 import ora from 'ora'
 import prompts from 'prompts'
-import spawn from 'cross-spawn'
-import { SpawnOptions } from 'child_process'
+import which from 'which-pm-runs'
+import { spawn, SpawnOptions } from 'child_process'
 
 export async function confirm(message: string) {
   const { value } = await prompts({
@@ -25,4 +25,10 @@ export function spawnAsync(args: string[], options: SpawnOptions = {}) {
     child.stdout?.pipe(process.stdout)
     child.on('close', resolve)
   })
+}
+
+export function exec(args: string[], options: SpawnOptions = {}) {
+  const agent = which()
+  const prefix = agent ? [agent.name, 'exec', '--'] : []
+  return spawnAsync([...prefix, ...args], options)
 }

@@ -1,4 +1,4 @@
-import { writeFile } from 'fs-extra'
+import { writeFile } from 'fs/promises'
 import { gt, SemVer } from 'semver'
 import { cyan, green } from 'kleur'
 import { confirm, register, cwd, PackageJson, Project } from 'yakumo'

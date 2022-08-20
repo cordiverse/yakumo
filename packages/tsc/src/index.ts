@@ -1,6 +1,6 @@
 import { promises as fsp } from 'fs'
 import { join } from 'path'
-import { register, cwd, PackageJson, spawnAsync } from 'yakumo'
+import { exec, register, cwd, PackageJson } from 'yakumo'
 import { load } from 'tsconfig-utils'
 import * as atsc from 'atsc'
 import * as dtsc from 'dtsc'
@@ -83,7 +83,7 @@ register('tsc', async (project) => {
       bundleNodes(bundleTargets),
     ])
     if (buildTargets.length) {
-      const code = await spawnAsync(['tsc', '-b', 'tsconfig.temp.json'])
+      const code = await exec(['tsc', '-b', 'tsconfig.temp.json'])
       if (code) process.exit(code)
     }
     await Promise.all(tasks)
