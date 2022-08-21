@@ -28,7 +28,7 @@
   ],
   "peerDependencies": {
     "mocha": "^9",
-    "yakumo": "^0.3.4"
+    "yakumo": "^0.3.5"
   },
   "devDependencies": {
     "@types/mocha": "^9.1.1"
