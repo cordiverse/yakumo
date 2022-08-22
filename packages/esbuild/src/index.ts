@@ -130,14 +130,24 @@ async function compile(relpath: string, meta: PackageJson, project: Project) {
     }
   }
 
+  // TODO: support null targets
+  function addConditionalEntry(pattern: PackageJson.Exports, options: BuildOptions) {
+    if (typeof pattern === 'string') {
+      return addEntry(pattern, options)
+    }
+
+    for (const key in pattern) {
+      if (key === 'node' || key === 'require' || key.startsWith('.')) {
+        addConditionalEntry(pattern[key], nodeOptions)
+      } else {
+        addConditionalEntry(pattern[key], browserOptions)
+      }
+    }
+  }
+
   addEntry(meta.main, nodeOptions)
   addEntry(meta.module, browserOptions)
-
-  // TODO: support conditional exports
-  // TODO: support null targets
-  for (const path in meta.exports || {}) {
-    addEntry(meta.exports[path], nodeOptions)
-  }
+  addConditionalEntry(meta.exports, nodeOptions)
 
   if (typeof meta.bin === 'string') {
     addEntry(meta.bin, nodeOptions)

@@ -167,10 +167,14 @@ export interface PackageJson extends Partial<Record<DependencyType, Record<strin
   main?: string
   module?: string
   bin?: string | Dict<string>
-  exports?: Dict<string>
+  exports?: PackageJson.Exports
   description?: string
   private?: boolean
   version?: string
   workspaces?: string[]
   yakumo?: PackageConfig
+}
+
+export namespace PackageJson {
+  export type Exports = string | { [key: string]: Exports } 
 }
