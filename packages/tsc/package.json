@@ -1,7 +1,7 @@
 {
   "name": "yakumo-tsc",
   "description": "Compile TypeScript for Yakumo",
-  "version": "0.3.4",
+  "version": "0.3.5",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "files": [
@@ -29,11 +29,11 @@
   ],
   "peerDependencies": {
     "typescript": "*",
-    "yakumo": "^0.3.5"
+    "yakumo": "^0.3.6"
   },
   "dependencies": {
-    "atsc": "^1.1.1",
-    "dtsc": "^2.2.2",
-    "tsconfig-utils": "^2.0.3"
+    "atsc": "^1.1.2",
+    "dtsc": "^2.2.3",
+    "tsconfig-utils": "^2.0.4"
   }
 }

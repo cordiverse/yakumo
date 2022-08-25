@@ -29,6 +29,8 @@ export function spawnAsync(args: string[], options: spawn.Options = {}) {
 
 export function exec(args: string[], options: spawn.Options = {}) {
   const agent = which()
-  const prefix = agent ? [agent.name, 'exec', '--'] : []
+  const prefix = !agent ? []
+    : agent.name === 'yarn' ? ['yarn']
+    : [agent.name, 'exec', '--']
   return spawnAsync([...prefix, ...args], options)
 }
