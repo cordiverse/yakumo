@@ -66,6 +66,7 @@ async function compile(relpath: string, meta: PackageJson, project: Project) {
           resolveDir: args.resolveDir,
           kind: args.kind,
         })
+        // TODO: handle native ESM import, should preserve extensions
         if (currentEntry === path || !srcFiles.has(path)) return null
         return { external: true }
       })
@@ -84,7 +85,7 @@ async function compile(relpath: string, meta: PackageJson, project: Project) {
   }
 
   const browserOptions: BuildOptions = {
-    platform: 'browser',
+    platform: 'neutral',
     target: 'esnext',
     format: 'esm',
   }
@@ -95,10 +96,19 @@ async function compile(relpath: string, meta: PackageJson, project: Project) {
   const srcFiles = new Set<string>()
   const outFiles = new Set<string>()
 
-  function addEntry(pattern: string, options: BuildOptions) {
+  function addExport(pattern: string, options: BuildOptions) {
     if (!pattern) return
     if (pattern.startsWith('./')) pattern = pattern.slice(2)
-    if (!pattern.startsWith(outDir + '/')) return
+    if (!pattern.startsWith(outDir + '/')) {
+      // handle files like `package.json`
+      pattern = pattern.replace('*', '**')
+      const targets = globby.sync(pattern, { cwd: base })
+      for (const target of targets) {
+        srcFiles.add(path.join(base, target))
+      }
+      return
+    }
+
     // https://nodejs.org/api/packages.html#subpath-patterns
     // `*` maps expose nested subpaths as it is a string replacement syntax only
     const outExt = path.extname(pattern)
@@ -125,35 +135,40 @@ async function compile(relpath: string, meta: PackageJson, project: Project) {
         logLevel: 'silent',
         plugins: [externalPlugin],
         resolveExtensions: ['.tsx', '.ts', '.jsx', '.js', '.css', '.json'],
+        tsconfig: base + '/tsconfig.json',
         ...options,
       })
     }
   }
 
   // TODO: support null targets
-  function addConditionalEntry(pattern: PackageJson.Exports, options: BuildOptions) {
+  function addConditionalExport(pattern: PackageJson.Exports, options: BuildOptions) {
     if (typeof pattern === 'string') {
-      return addEntry(pattern, options)
+      return addExport(pattern, options)
     }
 
     for (const key in pattern) {
       if (key === 'node' || key === 'require' || key.startsWith('.')) {
-        addConditionalEntry(pattern[key], nodeOptions)
+        addConditionalExport(pattern[key], nodeOptions)
       } else {
-        addConditionalEntry(pattern[key], browserOptions)
+        addConditionalExport(pattern[key], browserOptions)
       }
     }
   }
 
-  addEntry(meta.main, nodeOptions)
-  addEntry(meta.module, browserOptions)
-  addConditionalEntry(meta.exports, nodeOptions)
+  addExport(meta.main, nodeOptions)
+  addExport(meta.module, browserOptions)
+  addConditionalExport(meta.exports, nodeOptions)
+
+  if (!meta.exports) {
+    addExport('package.json', nodeOptions)
+  }
 
   if (typeof meta.bin === 'string') {
-    addEntry(meta.bin, nodeOptions)
+    addExport(meta.bin, nodeOptions)
   } else if (meta.bin) {
     for (const key in meta.bin) {
-      addEntry(meta.bin[key], nodeOptions)
+      addExport(meta.bin[key], nodeOptions)
     }
   }
 
