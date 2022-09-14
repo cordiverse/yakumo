@@ -1,9 +1,10 @@
 import { build, BuildFailure, BuildOptions, Message, Plugin } from 'esbuild'
+import { dirname, extname, join, relative, resolve } from 'path'
 import { cyan, red, yellow } from 'kleur'
 import { register, PackageJson, Project } from 'yakumo'
 import { load } from 'tsconfig-utils'
+import { Dict } from 'cosmokit'
 import globby from 'globby'
-import path from 'path'
 
 declare module 'yakumo' {
   interface Hooks {
@@ -35,8 +36,8 @@ let code = 0
 function bundle(options: BuildOptions) {
   // show entry list
   for (const [key, value] of Object.entries(options.entryPoints)) {
-    const source = path.relative(process.cwd(), value)
-    const target = path.relative(process.cwd(), path.resolve(options.outdir, key + options.outExtension['.js']))
+    const source = relative(process.cwd(), value)
+    const target = relative(process.cwd(), resolve(options.outdir, key + options.outExtension['.js']))
     console.log('esbuild:', source, '->', target)
   }
 
@@ -57,7 +58,8 @@ async function compile(relpath: string, meta: PackageJson, project: Project) {
   const externalPlugin: Plugin = {
     name: 'external library',
     setup(build) {
-      const currentEntry = Object.values(build.initialOptions.entryPoints)[0]
+      const { entryPoints, platform, format } = build.initialOptions
+      const currentEntry = Object.values(entryPoints)[0]
       build.onResolve({ filter }, () => ({ external: true }))
       build.onResolve({ filter: /^\./, namespace: 'file' }, async (args) => {
         const { path } = await build.resolve(args.path, {
@@ -66,16 +68,22 @@ async function compile(relpath: string, meta: PackageJson, project: Project) {
           resolveDir: args.resolveDir,
           kind: args.kind,
         })
-        // TODO: handle native ESM import, should preserve extensions
-        if (currentEntry === path || !srcFiles.has(path)) return null
-        return { external: true }
+        if (currentEntry === path || !exports[path]) return null
+        if (format === 'cjs') return { external: true }
+        // native ESM import should preserve extensions
+        const outFile = exports[path][platform] || exports[path].default
+        if (!outFile) return null
+        const outDir = dirname(exports[currentEntry][platform])
+        let relpath = relative(outDir, outFile)
+        if (!relpath.startsWith('.')) relpath = './' + relpath
+        return { path: relpath, external: true }
       })
     },
   }
 
   const base = project.cwd + relpath
   const config = await load(base)
-  const { rootDir, outFile, outDir = path.dirname(outFile), noEmit, emitDeclarationOnly } = config.compilerOptions
+  const { rootDir, outFile, outDir = dirname(outFile), noEmit, emitDeclarationOnly } = config.compilerOptions
   if (!noEmit && !emitDeclarationOnly) return []
 
   const nodeOptions: BuildOptions = {
@@ -85,15 +93,15 @@ async function compile(relpath: string, meta: PackageJson, project: Project) {
   }
 
   const browserOptions: BuildOptions = {
-    platform: 'neutral',
+    platform: 'browser',
     target: 'esnext',
     format: 'esm',
   }
 
-  const outdir = path.join(base, outDir)
-  const outbase = path.join(base, rootDir)
+  const outdir = join(base, outDir)
+  const outbase = join(base, rootDir)
   const matrix: BuildOptions[] = []
-  const srcFiles = new Set<string>()
+  const exports: Dict<Dict<string>> = Object.create(null)
   const outFiles = new Set<string>()
 
   function addExport(pattern: string, options: BuildOptions) {
@@ -104,25 +112,26 @@ async function compile(relpath: string, meta: PackageJson, project: Project) {
       pattern = pattern.replace('*', '**')
       const targets = globby.sync(pattern, { cwd: base })
       for (const target of targets) {
-        srcFiles.add(path.join(base, target))
+        const filename = join(base, target)
+        exports[filename] = { default: filename }
       }
       return
     }
 
     // https://nodejs.org/api/packages.html#subpath-patterns
     // `*` maps expose nested subpaths as it is a string replacement syntax only
-    const outExt = path.extname(pattern)
+    const outExt = extname(pattern)
     pattern = pattern.slice(outDir.length + 1, -outExt.length).replace('*', '**') + '.{ts,tsx}'
     const targets = globby.sync(pattern, { cwd: outbase })
     for (const target of targets) {
-      const srcFile = path.join(base, rootDir, target)
-      const srcExt = path.extname(target)
+      const srcFile = join(base, rootDir, target)
+      const srcExt = extname(target)
       const entry = target.slice(0, -srcExt.length)
-      const outFile = path.join(outdir, entry + outExt)
+      const outFile = join(outdir, entry + outExt)
       if (outFiles.has(outFile)) return
 
       outFiles.add(outFile)
-      srcFiles.add(srcFile)
+      ;(exports[srcFile] ||= {})[options.platform] = outFile
       matrix.push({
         outdir,
         outbase,
