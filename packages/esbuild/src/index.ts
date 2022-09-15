@@ -112,6 +112,8 @@ async function compile(relpath: string, meta: PackageJson, project: Project) {
       pattern = pattern.replace('*', '**')
       const targets = globby.sync(pattern, { cwd: base })
       for (const target of targets) {
+        // ignore exports in `rootDir`
+        if (!relative(rootDir, target).startsWith('../')) continue
         const filename = join(base, target)
         exports[filename] = { default: filename }
       }
