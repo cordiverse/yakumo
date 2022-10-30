@@ -36,15 +36,22 @@ function getPublishCommand(manager: Manager) {
   return ['yarn', 'npm']
 }
 
-function publish(manager: Manager, path: string, name: string, version: string, tag: string, access: string) {
+function publish(manager: Manager, path: string, name: string, version: string, tag: string, access: string,faCode:string="") {
   console.log(`publishing ${name}@${version} ...`)
-  return spawnAsync([
+  let spawnAsyncConfig=[
     ...getPublishCommand(manager),
     'publish', path.slice(1),
     '--tag', tag,
     '--access', access,
     '--color',
-  ], {
+  ]
+  //logic in detecting isUsing2FAMode
+  let isUsing2FAMode=faCode==""?false:true
+  if(isUsing2FAMode){
+    spawnAsyncConfig.push('--otp')
+    spawnAsyncConfig.push(faCode)
+  }
+  return spawnAsync(spawnAsyncConfig, {
     stdio: ['ignore', 'ignore', 'pipe'],
   })
 }
@@ -86,7 +93,8 @@ register('publish', async (project) => {
   for (const path in targets) {
     const { name, version } = targets[path]
     await project.emit('publish.before', path, targets[path])
-    await publish(project.manager, path, name, version, argv.tag ?? (isNext(version) ? 'next' : 'latest'), argv.access ?? 'public')
+    //detecting the argument which is caused the enter 2FACodeMode
+    await publish(project.manager, path, name, version, argv.tag ?? (isNext(version) ? 'next' : 'latest'), argv.access ?? 'public',argv.otp==undefined?"":argv.otp)
     await project.emit('publish.after', path, targets[path])
   }
 
