@@ -36,7 +36,7 @@ function getPublishCommand(manager: Manager) {
   return ['yarn', 'npm']
 }
 
-function publish(manager: Manager, path: string, name: string, version: string, tag: string, access: string, otp = '') {
+function publish(manager: Manager, path: string, name: string, version: string, tag: string, access: string, otp: string) {
   console.log(`publishing ${name}@${version} ...`)
   const args = [
     ...getPublishCommand(manager),
