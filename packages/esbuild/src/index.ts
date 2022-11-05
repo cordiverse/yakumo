@@ -54,7 +54,7 @@ async function compile(relpath: string, meta: PackageJson, project: Project) {
   // filter out private packages
   if (meta.private) return []
 
-  const filter = /^[@/\w-]+$/
+  const filter = /^[@\w].+$/
   const externalPlugin: Plugin = {
     name: 'external library',
     setup(build) {
