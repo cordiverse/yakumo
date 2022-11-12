@@ -1,7 +1,7 @@
 {
   "name": "yakumo-mocha",
   "description": "Mocha support for Yakumo",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "files": [
@@ -34,6 +34,7 @@
     "@types/mocha": "^9.1.1"
   },
   "dependencies": {
-    "globby": "^11.1.0"
+    "globby": "^11.1.0",
+    "yargs-unparser": "^2.0.0"
   }
 }
