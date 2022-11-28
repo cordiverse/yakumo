@@ -31,7 +31,7 @@
   ],
   "devDependencies": {
     "@types/js-yaml": "^4.0.5",
-    "@types/prompts": "^2.4.0",
+    "@types/prompts": "^2.4.1",
     "@types/which-pm-runs": "^1.0.0",
     "@types/yargs-parser": "^21.0.0"
   },
@@ -45,6 +45,6 @@
     "ora": "^5.4.1",
     "prompts": "^2.4.2",
     "which-pm-runs": "^1.1.0",
-    "yargs-parser": "^21.0.1"
+    "yargs-parser": "^21.1.1"
   }
 }

@@ -14,3 +14,12 @@ describe('basic', () => {
     expect(result.stderr).to.equal('unknown command: foo\n')
   })
 })
+
+describe('build', () => {
+  it('build', () => {
+    const result = execute(['build'])
+    console.log(result.stdout)
+    console.log(result.stderr)
+    expect(result.status).to.equal(0)
+  })
+})
