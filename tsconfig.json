@@ -5,6 +5,7 @@
     "paths": {
       "yakumo": ["packages/core/src"],
       "yakumo-*": ["packages/*/src"],
+      "@yakumojs/*": ["packages/*/src"],
     },
   },
   "files": [],

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { commands, config, configRequire, Project, requireSafe, Arguments, register } from '.'
+import { red } from 'kleur'
 import parse from 'yargs-parser'
 
 if (process.argv.length <= 2) {
@@ -28,7 +29,8 @@ const project = new Project()
 async function execute(name: string) {
   requireSafe('yakumo-' + name)
   if (!commands[name]) {
-    throw new Error(`unknown command: "${name}"`)
+    console.error(red(`unknown command: ${name}`))
+    process.exit(1)
   }
 
   const [callback, options] = commands[name]

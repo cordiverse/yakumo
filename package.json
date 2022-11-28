@@ -8,10 +8,11 @@
   "license": "MIT",
   "scripts": {
     "build": "tsc -b",
-    "bump": "yakumo version",
-    "dep": "yakumo upgrade",
-    "pub": "yakumo publish",
-    "test": "yakumo mocha",
+    "yakumo": "node -r esbuild-register packages/core/src/bin",
+    "bump": "yarn yakumo version",
+    "dep": "yarn yakumo upgrade",
+    "pub": "yarn yakumo publish",
+    "test": "yarn yakumo mocha -r esbuild-register",
     "test:text": "shx rm -rf coverage && c8 -r text yarn test",
     "test:json": "shx rm -rf coverage && c8 -r json yarn test",
     "test:html": "shx rm -rf coverage && c8 -r html yarn test"
@@ -21,6 +22,7 @@
     "@types/node": "^18.6.4",
     "c8": "^7.12.0",
     "esbuild": "^0.14.51",
+    "esbuild-register": "^3.4.1",
     "mocha": "^9.2.2",
     "shx": "^0.3.4",
     "typescript": "^4.7.4"
