@@ -1,7 +1,7 @@
 {
   "name": "yakumo-publish-sync",
   "description": "Sync other registry after publish",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "engines": {
@@ -20,7 +20,6 @@
   "bugs": {
     "url": "https://github.com/shigma/yakumo/issues"
   },
-  "homepage": "https://koishi.js.org",
   "keywords": [
     "yakumo",
     "plugin",
@@ -30,10 +29,10 @@
     "registry"
   ],
   "peerDependencies": {
-    "yakumo": "^0.3.6",
+    "yakumo": "^0.3.7",
     "yakumo-publish": "^0.3.1"
   },
   "dependencies": {
-    "axios": "^0.27.2"
+    "axios": "~1.1.3"
   }
 }

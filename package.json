@@ -12,19 +12,19 @@
     "bump": "yarn yakumo version",
     "dep": "yarn yakumo upgrade",
     "pub": "yarn yakumo publish",
-    "test": "yarn yakumo mocha -r esbuild-register",
+    "test": "yarn yakumo mocha -r esbuild-register -t 10000",
     "test:text": "shx rm -rf coverage && c8 -r text yarn test",
     "test:json": "shx rm -rf coverage && c8 -r json yarn test",
     "test:html": "shx rm -rf coverage && c8 -r html yarn test"
   },
   "devDependencies": {
     "@types/mocha": "^9.1.1",
-    "@types/node": "^18.6.4",
+    "@types/node": "^18.11.9",
     "c8": "^7.12.0",
-    "esbuild": "^0.14.51",
+    "esbuild": "^0.14.54",
     "esbuild-register": "^3.4.1",
     "mocha": "^9.2.2",
     "shx": "^0.3.4",
-    "typescript": "^4.7.4"
+    "typescript": "^4.9.3"
   }
 }

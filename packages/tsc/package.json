@@ -29,11 +29,11 @@
   ],
   "peerDependencies": {
     "typescript": "*",
-    "yakumo": "^0.3.6"
+    "yakumo": "^0.3.7"
   },
   "dependencies": {
     "atsc": "^1.1.2",
-    "dtsc": "^2.2.3",
+    "dtsc": "^2.2.4",
     "tsconfig-utils": "^2.0.4"
   }
 }
