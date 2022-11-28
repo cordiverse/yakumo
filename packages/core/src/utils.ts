@@ -1,6 +1,5 @@
 import ora from 'ora'
 import prompts from 'prompts'
-import which from 'which-pm-runs'
 import spawn from 'execa'
 
 export async function confirm(message: string) {
@@ -19,18 +18,10 @@ export function exit(message: string) {
 }
 
 export function spawnAsync(args: string[], options: spawn.Options = {}) {
-  const child = spawn(args[0], args.slice(1), { stdio: 'inherit', ...options })
+  const child = spawn(args[0], args.slice(1), options)
   return new Promise<number>((resolve) => {
     child.stderr?.pipe(process.stderr)
     child.stdout?.pipe(process.stdout)
     child.on('close', resolve)
   })
-}
-
-export function exec(args: string[], options: spawn.Options = {}) {
-  const agent = which()
-  const prefix = !agent ? []
-    : agent.name === 'yarn' ? ['yarn']
-    : [agent.name, 'exec', '--']
-  return spawnAsync([...prefix, ...args], options)
 }

@@ -1,7 +1,7 @@
 {
   "name": "@yakumojs/fixture-default-foo",
   "version": "0.0.0",
-  "main": "./lib",
+  "main": "lib/index.js",
   "files": [
     "lib"
   ],

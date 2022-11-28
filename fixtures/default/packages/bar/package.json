@@ -1,0 +1,12 @@
+{
+  "name": "@yakumojs/fixture-default-bar",
+  "version": "0.0.0",
+  "main": "lib/index.js",
+  "files": [
+    "lib"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@yakumojs/fixture-default-foo": "^0.0.0"
+  }
+}

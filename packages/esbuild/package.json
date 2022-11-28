@@ -31,6 +31,6 @@
     "esbuild": "*"
   },
   "dependencies": {
-    "tsconfig-utils": "^2.0.4"
+    "tsconfig-utils": "^3.0.0"
   }
 }
