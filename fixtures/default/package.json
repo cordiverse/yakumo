@@ -1,10 +1,11 @@
 {
-  "name": "@fixtures/default",
+  "name": "@yakumojs/fixture-default",
   "private": true,
   "version": "0.0.0",
   "workspaces": [
     "packages/*"
   ],
+  "license": "MIT",
   "devDependencies": {
     "esbuild": "^0.14.54",
     "esbuild-register": "^3.4.1",

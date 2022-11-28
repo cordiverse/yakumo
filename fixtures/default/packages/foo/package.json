@@ -1,8 +1,9 @@
 {
-  "name": "@fixtures/default-foo",
+  "name": "@yakumojs/fixture-default-foo",
   "version": "0.0.0",
   "main": "./lib",
   "files": [
     "lib"
-  ]
+  ],
+  "license": "MIT"
 }
