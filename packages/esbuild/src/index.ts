@@ -1,5 +1,5 @@
 import { build, BuildFailure, BuildOptions, Message, Plugin } from 'esbuild'
-import { dirname, extname, join, relative, resolve } from 'path'
+import { dirname, extname, isAbsolute, join, relative, resolve } from 'path'
 import { cyan, red, yellow } from 'kleur'
 import { register, PackageJson, Project } from 'yakumo'
 import { load } from 'tsconfig-utils'
@@ -60,7 +60,10 @@ async function compile(relpath: string, meta: PackageJson, project: Project) {
     setup(build) {
       const { entryPoints, platform, format } = build.initialOptions
       const currentEntry = Object.values(entryPoints)[0]
-      build.onResolve({ filter }, () => ({ external: true }))
+      build.onResolve({ filter }, (args) => {
+        if (isAbsolute(args.path)) return null
+        return { external: true }
+      })
       build.onResolve({ filter: /^\./, namespace: 'file' }, async (args) => {
         const { path } = await build.resolve(args.path, {
           namespace: 'internal',

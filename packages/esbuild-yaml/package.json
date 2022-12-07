@@ -31,7 +31,7 @@
   ],
   "peerDependencies": {
     "yakumo": "^0.3.7",
-    "yakumo-esbuild": "^0.3.18"
+    "yakumo-esbuild": "^0.3.19"
   },
   "dependencies": {
     "js-yaml": "^4.1.0"
