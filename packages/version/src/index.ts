@@ -3,7 +3,7 @@ import { gt, SemVer } from 'semver'
 import { cyan, green } from 'kleur'
 import { confirm, register, cwd, PackageJson, Project } from 'yakumo'
 
-const bumpTypes = ['major', 'minor', 'patch', 'prerelease', 'version'] as const
+const bumpTypes = ['major', 'minor', 'patch', 'prerelease', 'version', 'reset'] as const
 type BumpType = typeof bumpTypes[number]
 
 class Package {
@@ -19,13 +19,18 @@ class Package {
   bump(flag: BumpType, options: any) {
     if (this.meta.private) return
     let version = new SemVer(this.meta.version)
-    if (!flag) {
+    const reset = flag === 'reset'
+    if (!flag || reset) {
       if (version.prerelease.length) {
         const prerelease = version.prerelease.slice() as [string, number]
-        prerelease[1] += 1
+        prerelease[1] += reset ? -1 : 1
         version.prerelease = prerelease
       } else {
-        version.patch += 1
+        version.patch += reset ? -1 : 1
+      }
+      if (reset) {
+        this.dirty = true
+        return this.version = version.format()
       }
     } else if (flag === 'version') {
       this.dirty = true
@@ -147,9 +152,10 @@ register('version', async (project) => {
     major: ['1'],
     minor: ['2'],
     patch: ['3'],
+    reset: ['0'],
     prerelease: ['p'],
     version: ['v'],
     recursive: ['r'],
   },
-  boolean: ['major', 'minor', 'patch', 'prerelease', 'recursive'],
+  boolean: ['major', 'minor', 'patch', 'reset', 'prerelease', 'recursive'],
 })
