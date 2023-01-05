@@ -36,7 +36,7 @@ function getPublishCommand(manager: Manager) {
   return ['yarn', 'npm']
 }
 
-function publish(manager: Manager, path: string, name: string, version: string, tag: string, access: string, otp: string) {
+function publish(manager: Manager, path: string, name: string, version: string, tag: string, access: string, registry: string, otp: string) {
   console.log(`publishing ${name}@${version} ...`)
   const args = [
     ...getPublishCommand(manager),
@@ -45,6 +45,7 @@ function publish(manager: Manager, path: string, name: string, version: string, 
     '--access', access,
     '--color',
   ]
+  if (registry) args.push('--registry', registry)
   if (otp) args.push('--otp', otp)
   return spawnAsync(args, {
     stdio: ['ignore', 'ignore', 'pipe'],
@@ -88,7 +89,7 @@ register('publish', async (project) => {
   for (const path in targets) {
     const { name, version } = targets[path]
     await project.emit('publish.before', path, targets[path])
-    await publish(project.manager, path, name, version, argv.tag ?? (isNext(version) ? 'next' : 'latest'), argv.access ?? 'public', argv.otp)
+    await publish(project.manager, path, name, version, argv.tag ?? (isNext(version) ? 'next' : 'latest'), argv.access ?? 'public', argv.registry, argv.otp)
     await project.emit('publish.after', path, targets[path])
   }
 

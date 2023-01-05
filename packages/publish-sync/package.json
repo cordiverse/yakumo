@@ -30,7 +30,7 @@
   ],
   "peerDependencies": {
     "yakumo": "^0.3.7",
-    "yakumo-publish": "^0.3.1"
+    "yakumo-publish": "^0.3.2"
   },
   "dependencies": {
     "axios": "~1.1.3"
