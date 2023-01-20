@@ -87,28 +87,19 @@ register('publish', async (project) => {
     spinner.succeed()
   }
 
-  var total = 0,completed = 0;
-  for (const it in targets) {
-    total ++;
-  }
-
+  const total = Object.keys(targets).length
   spinner.start(`Publishing packages (0/${total})`)
-  
-  for (const path in targets) {
-    const { name, version } = targets[path]
-    new Promise(async(resolve)=>{
+
+  let completed = 0
+  await Promise.all(Object.entries(targets).map(async ([path, { name, version }]) => {
+    try {
       await project.emit('publish.before', path, targets[path])
       await publish(project.manager, path, name, version, argv.tag ?? (isNext(version) ? 'next' : 'latest'), argv.access ?? 'public', argv.registry, argv.otp)
       await project.emit('publish.after', path, targets[path])
-      resolve(undefined);
-    }).then(()=>{
-      completed++;
-      spinner.text = `Publishing packages (${completed}/${total})`
-      if(completed == total) {
-        spinner.succeed('Published all packages.')
-        spinner.succeed('All workspaces are up to date.')
-      }
-    })
-  }
+    } finally {
+      spinner.text = `Publishing packages (${++completed}/${total})`
+    }
+  }))
 
+  spinner.succeed('All workspaces are up to date.')
 })
