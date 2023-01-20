@@ -173,6 +173,7 @@ export interface PackageJson extends Partial<Record<DependencyType, Record<strin
   version?: string
   workspaces?: string[]
   yakumo?: PackageConfig
+  peerDependenciesMeta?: Record<string, { optional?: boolean }>
 }
 
 export namespace PackageJson {
