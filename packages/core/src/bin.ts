@@ -3,6 +3,7 @@
 import { commands, config, configRequire, Project, requireSafe, Arguments, register } from '.'
 import { red } from 'kleur'
 import parse from 'yargs-parser'
+import './plugins/preinstall'
 
 if (process.argv.length <= 2) {
   console.log('yakumo')
