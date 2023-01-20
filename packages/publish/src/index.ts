@@ -36,8 +36,8 @@ function getPublishCommand(manager: Manager) {
   return ['yarn', 'npm']
 }
 
-function publish(manager: Manager, path: string, name: string, version: string, tag: string, access: string, registry: string, otp: string) {
-  console.log(`publishing ${name}@${version} ...`)
+async function publish(manager: Manager, path: string, name: string, version: string, tag: string, access: string, registry: string, otp: string) {
+  // console.log(`publishing ${name}@${version} ...`)
   const args = [
     ...getPublishCommand(manager),
     'publish', path.slice(1),
@@ -47,7 +47,7 @@ function publish(manager: Manager, path: string, name: string, version: string, 
   ]
   if (registry) args.push('--registry', registry)
   if (otp) args.push('--otp', otp)
-  return spawnAsync(args, {
+  await spawnAsync(args, {
     stdio: ['ignore', 'ignore', 'pipe'],
   })
 }
@@ -57,6 +57,7 @@ register('publish', async (project) => {
   const spinner = ora()
   if (argv._.length) {
     const pending = Object.keys(targets).filter(path => targets[path].private)
+    
     if (pending.length) {
       const paths = pending.map(path => targets[path].name).join(', ')
       const { value } = await prompts({
@@ -86,12 +87,19 @@ register('publish', async (project) => {
     spinner.succeed()
   }
 
-  for (const path in targets) {
-    const { name, version } = targets[path]
-    await project.emit('publish.before', path, targets[path])
-    await publish(project.manager, path, name, version, argv.tag ?? (isNext(version) ? 'next' : 'latest'), argv.access ?? 'public', argv.registry, argv.otp)
-    await project.emit('publish.after', path, targets[path])
-  }
+  const total = Object.keys(targets).length
+  spinner.start(`Publishing packages (0/${total})`)
+
+  let completed = 0
+  await Promise.all(Object.entries(targets).map(async ([path, { name, version }]) => {
+    try {
+      await project.emit('publish.before', path, targets[path])
+      await publish(project.manager, path, name, version, argv.tag ?? (isNext(version) ? 'next' : 'latest'), argv.access ?? 'public', argv.registry, argv.otp)
+      await project.emit('publish.after', path, targets[path])
+    } finally {
+      spinner.text = `Publishing packages (${++completed}/${total})`
+    }
+  }))
 
   spinner.succeed('All workspaces are up to date.')
 })
