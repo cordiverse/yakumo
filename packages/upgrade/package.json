@@ -28,7 +28,7 @@
     "dependency"
   ],
   "peerDependencies": {
-    "yakumo": "^0.3.7"
+    "yakumo": "^0.3.8"
   },
   "devDependencies": {
     "@types/semver": "^7.3.13"
