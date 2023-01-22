@@ -27,7 +27,7 @@
     "build"
   ],
   "peerDependencies": {
-    "yakumo": "^0.3.8",
+    "yakumo": "^0.3.9",
     "esbuild": "*"
   },
   "dependencies": {

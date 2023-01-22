@@ -78,7 +78,6 @@ export class Project {
     this.argv = argv
     const folders = await globby(meta.workspaces || [], {
       cwd,
-      deep: 0,
       onlyDirectories: true,
       expandDirectories: false,
     })
