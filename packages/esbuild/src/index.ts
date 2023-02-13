@@ -170,7 +170,7 @@ async function compile(relpath: string, meta: PackageJson, project: Project) {
     }
   }
 
-  addExport(meta.main, nodeOptions)
+  addExport(meta.main, meta.type === 'module' ? browserOptions : nodeOptions)
   addExport(meta.module, browserOptions)
   addConditionalExport(meta.exports, nodeOptions)
 

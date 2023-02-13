@@ -163,6 +163,7 @@ export type DependencyType = 'dependencies' | 'devDependencies' | 'peerDependenc
 
 export interface PackageJson extends Partial<Record<DependencyType, Record<string, string>>> {
   name: string
+  type?: 'module' | 'commonjs'
   main?: string
   module?: string
   bin?: string | Dict<string>
