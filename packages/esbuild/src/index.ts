@@ -86,8 +86,9 @@ async function compile(relpath: string, meta: PackageJson, project: Project) {
 
   const base = project.cwd + relpath
   const config = await load(base)
-  const { rootDir, outFile, outDir = dirname(outFile), noEmit, emitDeclarationOnly } = config.compilerOptions
+  const { rootDir, outFile, noEmit, emitDeclarationOnly } = config.compilerOptions
   if (!noEmit && !emitDeclarationOnly) return []
+  const outDir = config.compilerOptions.outDir ?? dirname(outFile)
 
   const nodeOptions: BuildOptions = {
     platform: 'node',
