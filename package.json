@@ -22,13 +22,13 @@
   "devDependencies": {
     "@types/chai": "^4.3.4",
     "@types/mocha": "^9.1.1",
-    "@types/node": "^18.11.17",
-    "c8": "^7.12.0",
+    "@types/node": "^18.14.2",
+    "c8": "^7.13.0",
     "chai": "^4.3.7",
-    "esbuild": "^0.17.6",
+    "esbuild": "^0.17.10",
     "esbuild-register": "^3.4.2",
     "mocha": "^9.2.2",
     "shx": "^0.3.4",
-    "typescript": "^4.9.4"
+    "typescript": "^4.9.5"
   }
 }

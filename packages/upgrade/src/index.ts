@@ -22,7 +22,7 @@ declare module 'yakumo' {
 register('upgrade', async (project) => {
   const { targets, manager, config } = project
   const { concurrency = 10 } = config.commands.upgrade || {}
-  const deps: Record<string, Record<string, DependencyType[]>> = {}
+  const deps: Record<string, Record<string, Partial<Record<DependencyType, string[]>>>> = {}
   for (const path in targets) {
     load(path, targets[path])
   }
@@ -44,8 +44,10 @@ register('upgrade', async (project) => {
     output.push(`- ${yellow(dep)}: ${cyan(oldVersion)} -> ${green(newVersion)}`)
     for (const name in deps[request]) {
       Object.defineProperty(targets[name], '$dirty', { value: true })
-      for (const type of deps[request][name]) {
-        targets[name][type][dep] = newRange
+      for (const type in deps[request][name]) {
+        for (const key of deps[request][name][type]) {
+          targets[name][type][key] = targets[name][type][key].slice(0, -oldRange.length) + newRange
+        }
       }
     }
   }, { concurrency })
@@ -66,12 +68,14 @@ register('upgrade', async (project) => {
   function load(path: string, meta: PackageJson) {
     delete deps[meta.name]
     for (const type of ['dependencies', 'devDependencies', 'optionalDependencies'] as const) {
-      for (const dep in meta[type] || {}) {
+      for (const key in meta[type] || {}) {
         // skip workspaces and symlinks
-        const version = meta[type][dep]
-        if (targets[dep] || !'^~'.includes(version[0])) continue
-        const request = dep + ':' + version
-        ;((deps[request] ||= {})[path] ||= []).push(type)
+        const value = meta[type][key]
+        const prefix = /^(npm:.+@)?/.exec(value)[0]
+        const range = value.slice(prefix.length)
+        if (targets[key] || !'^~'.includes(range[0])) continue
+        const request = (prefix ? prefix.slice(4, -1) : key) + ':' + range
+        ;(((deps[request] ||= {})[path] ||= {})[type] ||= []).push(key)
       }
     }
   }
