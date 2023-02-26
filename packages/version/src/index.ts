@@ -91,21 +91,31 @@ class Graph {
     if (!version) return
     const dependents = new Set<Package>()
     this.each((target) => {
-      const { devDependencies, peerDependencies, dependencies, optionalDependencies } = target.meta
       const { name } = node.meta
       if (target.meta.name === name) return
-      Object.entries({ devDependencies, peerDependencies, dependencies, optionalDependencies })
-        .filter(([, dependencies = {}]) => dependencies[name])
-        .forEach(([type]) => {
-          const old = target.meta[type][name]
-          const prefix = /^[\^~]?/.exec(old)[0]
-          if (old === prefix + version) return
-          target.meta[type][name] = prefix + version
-          target.dirty = true
-          if (type !== 'devDependencies') {
-            dependents.add(target)
+      const npmLinkPrefix = `npm:${name}@`
+      for (const type of ['devDependencies', 'peerDependencies', 'dependencies', 'optionalDependencies'] as const) {
+        const deps = target.meta[type] || {}
+        for (const key in deps) {
+          const value = deps[key]
+          if (key === name) {
+            update('')
+          } else if (value.startsWith(npmLinkPrefix)) {
+            update(npmLinkPrefix)
           }
-        })
+
+          function update(prefix: string) {
+            const range = value.slice(prefix.length)
+            const modifier = /^[\^~]?/.exec(range)[0]
+            if (range === modifier + version) return
+            target.meta[type][key] = prefix + modifier + version
+            target.dirty = true
+            if (type !== 'devDependencies') {
+              dependents.add(target)
+            }
+          }
+        }
+      }
     })
     if (!this.project.argv.recursive) return
     dependents.forEach(dep => this.bump(dep, flag))
