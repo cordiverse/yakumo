@@ -13,9 +13,33 @@ interface Node {
   next: Set<string>
 }
 
+declare module 'yakumo' {
+  interface Arguments {
+    clean: boolean
+  }
+}
+
 register('tsc', async (project) => {
+  const { targets, argv } = project
+
+  // build clean
+  if (argv.clean) {
+    for (const path in targets) {
+      const fullpath = join(cwd, path)
+      try {
+        const { compilerOptions: { outDir = 'lib' }} = await load(fullpath)
+        const fullOutDir = join(cwd, path, outDir)
+        await Promise.all([
+          fsp.rm(fullOutDir, { recursive: true }),
+          fsp.rm(join(fullpath, 'tsconfig.tsbuildinfo')),
+          fsp.rm(join(fullpath, 'tsconfig.temp.json')),
+        ].map(p => p.catch()))
+      } catch {}
+    }
+    return
+  }
+
   // Step 1: initialize nodes
-  const { targets } = project
   const nodes: Record<string, Node> = {}
   for (const path in targets) {
     const meta = targets[path]
