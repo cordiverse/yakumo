@@ -13,12 +13,6 @@ interface Node {
   next: Set<string>
 }
 
-declare module 'yakumo' {
-  interface Arguments {
-    clean: boolean
-  }
-}
-
 register('tsc', async (project) => {
   const { targets, argv } = project
 
@@ -27,12 +21,11 @@ register('tsc', async (project) => {
     for (const path in targets) {
       const fullpath = join(cwd, path)
       try {
-        const { compilerOptions: { outDir = 'lib' }} = await load(fullpath)
+        const { compilerOptions: { outDir = 'lib' } = {}} = await load(fullpath)
         const fullOutDir = join(cwd, path, outDir)
         await Promise.allSettled([
           fsp.rm(fullOutDir, { recursive: true }),
           fsp.rm(join(fullpath, 'tsconfig.tsbuildinfo')),
-          fsp.rm(join(fullpath, 'tsconfig.temp.json')),
         ])
       } catch {}
     }
