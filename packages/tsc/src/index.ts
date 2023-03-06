@@ -18,7 +18,10 @@ register('tsc', async (project) => {
 
   // build clean
   if (argv.clean) {
-    await fsp.rm(join(cwd, 'tsconfig.temp.json'))
+    try {
+      await fsp.rm(join(cwd, 'tsconfig.temp.json'))
+    } catch {}
+
     for (const path in targets) {
       const fullpath = join(cwd, path)
       try {
