@@ -21,11 +21,11 @@ register('tsc', async (project) => {
     for (const path in targets) {
       const fullpath = join(cwd, path)
       try {
-        const { compilerOptions: { outDir = 'lib' } = {}} = await load(fullpath)
-        const fullOutDir = join(cwd, path, outDir)
+        const { compilerOptions: { outDir = 'lib' } = {} } = await load(fullpath)
         await Promise.allSettled([
-          fsp.rm(fullOutDir, { recursive: true }),
+          fsp.rm(join(cwd, path, outDir), { recursive: true }),
           fsp.rm(join(fullpath, 'tsconfig.tsbuildinfo')),
+          fsp.rm(join(cwd, 'tsconfig.temp.json'))
         ])
       } catch {}
     }
