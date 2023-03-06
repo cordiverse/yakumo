@@ -18,6 +18,7 @@ register('tsc', async (project) => {
 
   // build clean
   if (argv.clean) {
+    fsp.rm(join(cwd, 'tsconfig.temp.json'))
     for (const path in targets) {
       const fullpath = join(cwd, path)
       try {
@@ -25,7 +26,6 @@ register('tsc', async (project) => {
         await Promise.allSettled([
           fsp.rm(join(cwd, path, outDir), { recursive: true }),
           fsp.rm(join(fullpath, 'tsconfig.tsbuildinfo')),
-          fsp.rm(join(cwd, 'tsconfig.temp.json'))
         ])
       } catch {}
     }
