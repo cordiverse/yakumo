@@ -106,6 +106,7 @@ class Graph {
 
           function update(prefix: string) {
             const range = value.slice(prefix.length)
+            if (range.includes(':')) return
             const modifier = /^[\^~]?/.exec(range)[0]
             if (range === modifier + version) return
             target.meta[type][key] = prefix + modifier + version
