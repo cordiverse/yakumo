@@ -28,7 +28,7 @@ register('tsc', async (project) => {
       try {
         const tsconfig = await load(fullpath)
         task.push(
-          fsp.rm(join(cwd, path, tsconfig.compilerOptions.outDir || 'lib'), { recursive: true }),
+          fsp.rm(join(cwd, path, tsconfig?.compilerOptions?.outDir || 'lib'), { recursive: true }),
           fsp.rm(join(fullpath, 'tsconfig.tsbuildinfo')),
         )
       } catch {}
