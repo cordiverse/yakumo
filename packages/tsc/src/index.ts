@@ -14,8 +14,24 @@ interface Node {
 }
 
 register('tsc', async (project) => {
+  const { targets, argv } = project
+
+  // build clean
+  if (argv.clean) {
+    const tasks = Object.keys(targets).map(async (path) => {
+      const fullpath = join(cwd, path)
+      const tsconfig = await load(fullpath)
+      await Promise.all([
+        fsp.rm(join(cwd, path, tsconfig?.compilerOptions?.outDir || 'lib'), { recursive: true }),
+        fsp.rm(join(fullpath, 'tsconfig.tsbuildinfo')),
+      ])
+    })
+    tasks.push(fsp.rm(join(cwd, 'tsconfig.temp.json')))
+    await Promise.allSettled(tasks)
+    return
+  }
+
   // Step 1: initialize nodes
-  const { targets } = project
   const nodes: Record<string, Node> = {}
   for (const path in targets) {
     const meta = targets[path]

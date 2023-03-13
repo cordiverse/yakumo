@@ -9,3 +9,7 @@ describe('basic', () => {
 describe('build', () => {
   testExec({ args: ['build'], code: 0 })
 })
+
+describe('clean', () => {
+  testExec({ args: ['tsc', '--clean'], code: 0 })
+})
