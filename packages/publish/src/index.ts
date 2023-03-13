@@ -1,6 +1,7 @@
-import { register, Manager, exit, spawnAsync } from 'yakumo'
+import { cwd, register, Manager, exit, spawnAsync } from 'yakumo'
 import { gt, prerelease } from 'semver'
 import { Awaitable } from 'cosmokit'
+import { join } from 'path'
 import latest from 'latest-version'
 import ora from 'ora'
 import prompts from 'prompts'
@@ -40,7 +41,7 @@ async function publish(manager: Manager, path: string, name: string, version: st
   // console.log(`publishing ${name}@${version} ...`)
   const args = [
     ...getPublishCommand(manager),
-    'publish', path.slice(1),
+    'publish', join(cwd, path),
     '--tag', tag,
     '--access', access,
     '--color',
