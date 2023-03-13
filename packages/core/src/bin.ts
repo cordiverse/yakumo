@@ -20,14 +20,15 @@ for (const name in config.pipeline) {
   register(name, async () => {
     const tasks = config.pipeline[name]
     for (const task of tasks) {
-      await execute(task)
+      const [name, ...args] = task.split(/\s+/g)
+      await execute(name, ...args)
     }
   })
 }
 
 const project = new Project()
 
-async function execute(name: string) {
+async function execute(name: string, ...args: string[]) {
   requireSafe('yakumo-' + name)
   if (!commands[name]) {
     console.error(red(`unknown command: ${name}`))
@@ -35,7 +36,7 @@ async function execute(name: string) {
   }
 
   const [callback, options] = commands[name]
-  const argv = parse(process.argv.slice(3), options) as Arguments
+  const argv = parse([...process.argv.slice(3), ...args], options) as Arguments
   argv.config = options
   await project.initialize(argv)
   return callback(project)
