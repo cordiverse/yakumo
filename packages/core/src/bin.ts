@@ -1,6 +1,4 @@
-#!/usr/bin/env node
-
-import { commands, config, configRequire, Project, requireSafe, Arguments, register } from '.'
+import { Arguments, commands, config, configRequire, Project, register, requireSafe } from '.'
 import { red } from 'kleur'
 import parse from 'yargs-parser'
 import './plugins/preinstall'

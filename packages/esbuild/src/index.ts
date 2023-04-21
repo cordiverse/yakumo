@@ -1,7 +1,7 @@
 import { build, BuildFailure, BuildOptions, Message, Plugin } from 'esbuild'
 import { dirname, extname, isAbsolute, join, relative, resolve } from 'path'
 import { cyan, red, yellow } from 'kleur'
-import { register, PackageJson, Project } from 'yakumo'
+import { PackageJson, Project, register } from 'yakumo'
 import { load } from 'tsconfig-utils'
 import { Dict } from 'cosmokit'
 import globby from 'globby'
