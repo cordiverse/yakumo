@@ -1,9 +1,10 @@
-import { register } from '..'
+import { install, register } from '..'
 import picomatch from 'picomatch'
 
-register('preinstall', async (project) => {
+register('prepare', async (project) => {
   const { workspaces } = project.workspaces['']
   const current = new Set(workspaces)
+  if (!current.size) return
   const match = picomatch(workspaces)
   let hasUpdate = false
   for (const prefix in project.workspaces) {
@@ -31,6 +32,7 @@ register('preinstall', async (project) => {
   if (hasUpdate) {
     project.workspaces[''].workspaces = [...current].sort()
     await project.save('')
+    await install()
   }
 }, {
   manual: true,

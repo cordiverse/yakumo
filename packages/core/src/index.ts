@@ -1,7 +1,7 @@
 import globby from 'globby'
-import which from 'which-pm-runs'
 import yargs from 'yargs-parser'
 import detect from 'detect-indent'
+import { manager } from './utils'
 import { load } from 'js-yaml'
 import { promises as fsp, readFileSync } from 'fs'
 import { Module } from 'module'
@@ -67,7 +67,7 @@ export class Project {
   constructor() {
     this.cwd = cwd
     this.config = config
-    this.manager = which()
+    this.manager = manager
   }
 
   require(id: string) {
@@ -177,5 +177,5 @@ export interface PackageJson extends Partial<Record<DependencyType, Record<strin
 }
 
 export namespace PackageJson {
-  export type Exports = string | { [key: string]: Exports } 
+  export type Exports = string | { [key: string]: Exports }
 }

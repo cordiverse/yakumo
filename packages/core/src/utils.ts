@@ -1,5 +1,6 @@
 import ora from 'ora'
 import prompts from 'prompts'
+import which from 'which-pm-runs'
 import spawn from 'execa'
 
 export async function confirm(message: string) {
@@ -24,4 +25,12 @@ export function spawnAsync(args: string[], options: spawn.Options = {}) {
     child.stdout?.pipe(process.stdout)
     child.on('close', resolve)
   })
+}
+
+export const manager = which()
+
+export async function install() {
+  const agent = manager?.name || 'npm'
+  const code = await spawnAsync([agent, 'install'])
+  if (code) process.exit(code)
 }
