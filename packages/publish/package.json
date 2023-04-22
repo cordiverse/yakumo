@@ -26,10 +26,10 @@
     "publish"
   ],
   "peerDependencies": {
-    "yakumo": "^0.3.10"
+    "yakumo": "^0.3.12"
   },
   "devDependencies": {
-    "@types/prompts": "^2.4.2",
+    "@types/prompts": "^2.4.3",
     "@types/semver": "^7.3.13"
   },
   "dependencies": {

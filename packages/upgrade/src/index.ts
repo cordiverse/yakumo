@@ -1,4 +1,4 @@
-import { DependencyType, register, PackageJson, spawnAsync } from 'yakumo'
+import { DependencyType, PackageJson, register, spawnAsync } from 'yakumo'
 import { cyan, green, yellow } from 'kleur'
 import { gt } from 'semver'
 import latest from 'latest-version'
