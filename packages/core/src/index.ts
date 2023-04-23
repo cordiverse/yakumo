@@ -111,7 +111,7 @@ export class Project {
     }
 
     const targets = Object.keys(this.workspaces).filter((folder) => {
-      if (this.workspaces[folder].private) return
+      if (this.workspaces[folder].workspaces) return
       const [last] = folder.split('/').reverse()
       return name === last
     })
