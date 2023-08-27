@@ -3,6 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "workspaces": [
+    "external/*",
     "fixtures/*",
     "fixtures/default/packages/*",
     "packages/*"
@@ -20,15 +21,15 @@
     "test:html": "shx rm -rf coverage && c8 -r html yarn test"
   },
   "devDependencies": {
-    "@types/chai": "^4.3.4",
+    "@types/chai": "^4.3.5",
     "@types/mocha": "^9.1.1",
-    "@types/node": "^18.15.3",
-    "c8": "^7.13.0",
+    "@types/node": "^20.4.2",
+    "c8": "^7.14.0",
     "chai": "^4.3.7",
-    "esbuild": "^0.17.12",
+    "esbuild": "^0.18.14",
     "esbuild-register": "^3.4.2",
     "mocha": "^9.2.2",
     "shx": "^0.3.4",
-    "typescript": "^4.9.5"
+    "typescript": "^5.1.6"
   }
 }

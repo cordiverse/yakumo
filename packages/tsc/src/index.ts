@@ -1,6 +1,6 @@
 import { promises as fsp } from 'fs'
 import { join } from 'path'
-import { register, cwd, PackageJson } from 'yakumo'
+import { cwd, PackageJson, register } from 'yakumo'
 import { compile, load } from 'tsconfig-utils'
 import * as atsc from 'atsc'
 import * as dtsc from 'dtsc'
@@ -35,7 +35,7 @@ register('tsc', async (project) => {
   const nodes: Record<string, Node> = {}
   for (const path in targets) {
     const meta = targets[path]
-    if (!meta.main) continue
+    if (!meta.main && !meta.exports) continue
     const fullpath = join(cwd, path)
     try {
       const config = await load(fullpath)

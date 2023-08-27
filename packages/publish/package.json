@@ -26,16 +26,16 @@
     "publish"
   ],
   "peerDependencies": {
-    "yakumo": "^0.3.12"
+    "yakumo": "^0.3.13"
   },
   "devDependencies": {
-    "@types/prompts": "^2.4.3",
-    "@types/semver": "^7.3.13"
+    "@types/prompts": "^2.4.4",
+    "@types/semver": "^7.5.0"
   },
   "dependencies": {
     "latest-version": "^5.1.0",
     "ora": "^5.4.1",
     "prompts": "^2.4.2",
-    "semver": "^7.3.8"
+    "semver": "^7.5.4"
   }
 }
