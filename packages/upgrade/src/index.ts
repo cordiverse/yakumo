@@ -67,7 +67,7 @@ register('upgrade', async (project) => {
 
   function load(path: string, meta: PackageJson) {
     delete deps[meta.name]
-    for (const type of ['dependencies', 'devDependencies', 'optionalDependencies'] as const) {
+    for (const type of ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies'] as const) {
       for (const key in meta[type] || {}) {
         // skip workspaces and symlinks
         const value = meta[type][key]
