@@ -86,7 +86,7 @@ async function compile(relpath: string, meta: PackageJson, project: Project) {
 
   const base = project.cwd + relpath
   const config = await load(base)
-  const { rootDir, outFile, noEmit, emitDeclarationOnly } = config.compilerOptions
+  const { rootDir, outFile, noEmit, emitDeclarationOnly, sourceMap } = config.compilerOptions
   if (!noEmit && !emitDeclarationOnly) return []
   const outDir = config.compilerOptions.outDir ?? dirname(outFile)
 
@@ -144,7 +144,8 @@ async function compile(relpath: string, meta: PackageJson, project: Project) {
         outExtension: { '.js': outExt },
         entryPoints: { [entry]: srcFile },
         bundle: true,
-        sourcemap: true,
+        sourcemap: sourceMap,
+        sourcesContent: false,
         keepNames: true,
         charset: 'utf8',
         logLevel: 'silent',
