@@ -1,7 +1,7 @@
 {
   "name": "yakumo-publish",
   "description": "Publish packages in a Yakumo workspace",
-  "version": "0.3.4",
+  "version": "0.3.5",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "files": [
@@ -29,8 +29,8 @@
     "yakumo": "^0.3.13"
   },
   "devDependencies": {
-    "@types/prompts": "^2.4.4",
-    "@types/semver": "^7.5.0"
+    "@types/prompts": "^2.4.7",
+    "@types/semver": "^7.5.4"
   },
   "dependencies": {
     "latest-version": "^5.1.0",

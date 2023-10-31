@@ -1,4 +1,4 @@
-import { cwd, register, Manager, exit, spawnAsync } from 'yakumo'
+import { cwd, exit, Manager, PackageJson, register, spawnAsync } from 'yakumo'
 import { gt, prerelease } from 'semver'
 import { Awaitable } from 'cosmokit'
 import { join } from 'path'
@@ -31,24 +31,19 @@ function isNext(version: string) {
   return parts[0] !== 'rc'
 }
 
-function getPublishCommand(manager: Manager) {
-  if (!manager) return ['npm']
-  if (manager.name !== 'yarn' || manager.version.startsWith('1.')) return [manager.name]
-  return ['yarn', 'npm']
+function getPublishCommand(manager: Manager, path: string, meta: PackageJson) {
+  if (!manager) return ['npm', 'publish', join(cwd, path), '--color']
+  if (manager.name !== 'yarn' || manager.version.startsWith('1.')) return [manager.name, 'publish', join(cwd, path), '--color']
+  return ['yarn', 'workspace', meta.name, 'npm', 'publish']
 }
 
-async function publish(manager: Manager, path: string, name: string, version: string, tag: string, access: string, registry: string, otp: string) {
+async function publish(manager: Manager, path: string, meta: PackageJson, args: string[]) {
   // console.log(`publishing ${name}@${version} ...`)
-  const args = [
-    ...getPublishCommand(manager),
-    'publish', join(cwd, path),
-    '--tag', tag,
-    '--access', access,
-    '--color',
+  args = [
+    ...getPublishCommand(manager, path, meta),
+    ...args,
   ]
-  if (registry) args.push('--registry', registry)
-  if (otp) args.push('--otp', otp)
-  await spawnAsync(args, {
+  return await spawnAsync(args, {
     stdio: ['ignore', 'ignore', 'pipe'],
   })
 }
@@ -58,7 +53,7 @@ register('publish', async (project) => {
   const spinner = ora()
   if (argv._.length) {
     const pending = Object.keys(targets).filter(path => targets[path].private)
-    
+
     if (pending.length) {
       const paths = pending.map(path => targets[path].name).join(', ')
       const { value } = await prompts({
@@ -91,16 +86,30 @@ register('publish', async (project) => {
   const total = Object.keys(targets).length
   spinner.start(`Publishing packages (0/${total})`)
 
-  let completed = 0
-  await Promise.all(Object.entries(targets).map(async ([path, { name, version }]) => {
+  let completed = 0, failed = 0
+  await Promise.all(Object.entries(targets).map(async ([path, meta]) => {
     try {
       await project.emit('publish.before', path, targets[path])
-      await publish(project.manager, path, name, version, argv.tag ?? (isNext(version) ? 'next' : 'latest'), argv.access ?? 'public', argv.registry, argv.otp)
+      const args = [
+        '--tag', argv.tag ?? (isNext(meta.version) ? 'next' : 'latest'),
+        '--access', argv.access ?? 'public',
+      ]
+      if (argv.registry) args.push('--registry', argv.registry)
+      if (argv.otp) args.push('--otp', argv.otp)
+      const code = await publish(project.manager, path, meta, args)
+      if (code) {
+        failed++
+        return
+      }
       await project.emit('publish.after', path, targets[path])
     } finally {
       spinner.text = `Publishing packages (${++completed}/${total})`
     }
   }))
 
-  spinner.succeed('All workspaces are up to date.')
+  if (failed) {
+    spinner.fail(`Published ${total - failed} packages, ${failed} failed.`)
+  } else {
+    spinner.succeed(`Published ${total} packages.`)
+  }
 })
