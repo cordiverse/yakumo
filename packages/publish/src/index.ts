@@ -31,21 +31,25 @@ function isNext(version: string) {
   return parts[0] !== 'rc'
 }
 
-function getPublishCommand(manager: Manager, path: string, meta: PackageJson) {
-  if (!manager) return ['npm', 'publish', join(cwd, path), '--color']
-  if (manager.name !== 'yarn' || manager.version.startsWith('1.')) return [manager.name, 'publish', join(cwd, path), '--color']
-  return ['yarn', 'workspace', meta.name, 'npm', 'publish']
+function isBerry(manager: Manager) {
+  return manager?.name === 'yarn' && !manager.version.startsWith('1.')
 }
 
-async function publish(manager: Manager, path: string, meta: PackageJson, args: string[]) {
+async function publish(manager: Manager, path: string, meta: PackageJson, args: string[], argv: any) {
   // console.log(`publishing ${name}@${version} ...`)
-  args = [
-    ...getPublishCommand(manager, path, meta),
-    ...args,
-  ]
-  return await spawnAsync(args, {
-    stdio: ['ignore', 'ignore', 'pipe'],
-  })
+  if (!isBerry(manager)) {
+    args = [manager?.name || 'npm', 'publish', join(cwd, path), '--color', ...args]
+    return await spawnAsync(args, { stdio: argv.debug ? 'inherit' : 'ignore' })
+  }
+  return await spawnAsync(['yarn', 'workspace', meta.name, 'npm', 'publish', ...args], { stdio: argv.debug ? 'inherit' : 'ignore' })
+}
+
+async function parallel<S, T>(list: S[], fn: (item: S) => Promise<T>) {
+  await Promise.all(list.map(fn))
+}
+
+async function serial<S, T>(list: S[], fn: (item: S) => Promise<T>) {
+  for (const item of list) await fn(item)
 }
 
 register('publish', async (project) => {
@@ -84,10 +88,10 @@ register('publish', async (project) => {
   }
 
   const total = Object.keys(targets).length
-  spinner.start(`Publishing packages (0/${total})`)
+  if (!argv.debug) spinner.start(`Publishing packages (0/${total})`)
 
   let completed = 0, failed = 0
-  await Promise.all(Object.entries(targets).map(async ([path, meta]) => {
+  await (argv.debug ? serial : parallel)(Object.entries(targets), async ([path, meta]) => {
     try {
       await project.emit('publish.before', path, targets[path])
       const args = [
@@ -96,16 +100,16 @@ register('publish', async (project) => {
       ]
       if (argv.registry) args.push('--registry', argv.registry)
       if (argv.otp) args.push('--otp', argv.otp)
-      const code = await publish(project.manager, path, meta, args)
+      const code = await publish(project.manager, path, meta, args, argv)
       if (code) {
         failed++
         return
       }
       await project.emit('publish.after', path, targets[path])
     } finally {
-      spinner.text = `Publishing packages (${++completed}/${total})`
+      if (!argv.debug) spinner.text = `Publishing packages (${++completed}/${total})`
     }
-  }))
+  })
 
   if (failed) {
     spinner.fail(`Published ${total - failed} packages, ${failed} failed.`)
