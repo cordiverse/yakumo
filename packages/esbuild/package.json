@@ -27,8 +27,8 @@
     "build"
   ],
   "peerDependencies": {
-    "yakumo": "^0.3.13",
-    "esbuild": "*"
+    "esbuild": "*",
+    "yakumo": "^0.3.13"
   },
   "dependencies": {
     "tsconfig-utils": "^3.1.3"

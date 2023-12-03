@@ -29,14 +29,14 @@
     "script"
   ],
   "devDependencies": {
-    "@types/js-yaml": "^4.0.5",
-    "@types/picomatch": "^2.3.0",
-    "@types/prompts": "^2.4.4",
-    "@types/which-pm-runs": "^1.0.0",
-    "@types/yargs-parser": "^21.0.0"
+    "@types/js-yaml": "^4.0.9",
+    "@types/picomatch": "^2.3.3",
+    "@types/prompts": "^2.4.9",
+    "@types/which-pm-runs": "^1.0.2",
+    "@types/yargs-parser": "^21.0.3"
   },
   "dependencies": {
-    "cosmokit": "^1.4.5",
+    "cosmokit": "^1.5.1",
     "detect-indent": "^6.1.0",
     "execa": "^5.1.1",
     "globby": "^11.1.0",

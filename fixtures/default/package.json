@@ -7,8 +7,8 @@
   ],
   "license": "MIT",
   "devDependencies": {
-    "esbuild": "^0.18.14",
-    "esbuild-register": "^3.4.2",
-    "typescript": "^5.1.6"
+    "esbuild": "^0.18.20",
+    "esbuild-register": "^3.5.0",
+    "typescript": "^5.3.2"
   }
 }
