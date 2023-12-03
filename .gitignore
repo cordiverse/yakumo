@@ -1,10 +1,22 @@
 lib
 dist
 temp
-external
+
+/external
+
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+
+yarn.lock
+package-lock.json
+pnpm-lock.yaml
 
 todo.md
-yarn.lock
 coverage/
 node_modules/
 npm-debug.log
@@ -19,7 +31,6 @@ report.*.json
 .DS_Store
 .idea
 .vscode
-.yarn
 *.suo
 *.ntvs*
 *.njsproj
