@@ -1,5 +1,5 @@
 import { DependencyType, PackageJson, register, spawnAsync } from 'yakumo'
-import { cyan, green, yellow } from 'kleur'
+import { cyan, green, red, yellow } from 'kleur'
 import { gt } from 'semver'
 import latest from 'latest-version'
 import pMap from 'p-map'
@@ -32,16 +32,28 @@ register('upgrade', async (project) => {
   const names = Object.values(targets).map(p => p.name)
   const spinner = ora(`progress: 0/${requests.length}`).start()
   let progress = 0
-  await pMap(requests, async (request) => {
-    const [dep, oldRange] = request.split(':')
-    if (names.includes(dep)) return
-    const oldVersion = oldRange.slice(1)
-    const newVersion = await latest(dep, { version: oldRange })
+  function updateProgress() {
     progress++
     spinner.text = `progress: ${progress}/${requests.length}`
-    if (!gt(newVersion, oldVersion)) return
+  }
+
+  await pMap(requests, async (request) => {
+    const [dep, oldRange] = request.split(':')
+    if (names.includes(dep)) return updateProgress()
+    const oldVersion = oldRange.slice(1)
+    const [newVersion, lastestVersion] = await Promise.all([
+      latest(dep, { version: oldRange }),
+      latest(dep),
+    ])
+    updateProgress()
+    try {
+      if (!gt(newVersion, oldVersion)) return
+    } catch (error) {
+      output.push(`- ${red(dep)}: skipped`)
+      return
+    }
     const newRange = oldRange[0] + newVersion
-    output.push(`- ${yellow(dep)}: ${cyan(oldVersion)} -> ${green(newVersion)}`)
+    output.push(`- ${yellow(dep)}: ${cyan(oldVersion)} -> ${green(newVersion)}${newVersion === lastestVersion ? '' : ` (latest: ${lastestVersion})`}`)
     for (const name in deps[request]) {
       Object.defineProperty(targets[name], '$dirty', { value: true })
       for (const type in deps[request][name]) {
