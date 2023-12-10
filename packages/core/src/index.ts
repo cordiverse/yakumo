@@ -1,11 +1,13 @@
+import * as cordis from 'cordis'
 import globby from 'globby'
 import yargs from 'yargs-parser'
 import detect from 'detect-indent'
-import { manager } from './utils'
-import { load } from 'js-yaml'
+import { manager, spawnAsync } from './utils'
+import { red } from 'kleur'
 import { promises as fsp, readFileSync } from 'fs'
 import { Module } from 'module'
-import { Awaitable, Dict, makeArray, pick } from 'cosmokit'
+import { Dict, makeArray, pick } from 'cosmokit'
+import * as prepare from './plugins/prepare'
 
 export * from './utils'
 
@@ -23,20 +25,6 @@ export function requireSafe(id: string) {
   }
 }
 
-function loadConfig(): ProjectConfig {
-  let content: string
-  try {
-    content = readFileSync(`${cwd}/yakumo.yml`, 'utf8')
-  } catch {}
-
-  return {
-    alias: {},
-    require: [],
-    commands: {},
-    ...content && load(content) as any,
-  }
-}
-
 export interface Commands {}
 
 export interface PackageConfig {}
@@ -48,26 +36,85 @@ export interface ProjectConfig {
   pipeline?: Dict<string[]>
 }
 
-export const config = loadConfig()
-
 export interface Manager {
   name: string
   version: string
 }
 
-export class Project {
+export interface Arguments extends yargs.Arguments {
+  config: Options
+}
+
+export interface Options extends yargs.Options {
+  manual?: boolean
+}
+
+export type DependencyType = 'dependencies' | 'devDependencies' | 'peerDependencies' | 'optionalDependencies'
+
+export interface PackageJson extends Partial<Record<DependencyType, Record<string, string>>> {
+  name: string
+  type?: 'module' | 'commonjs'
+  main?: string
+  module?: string
+  bin?: string | Dict<string>
+  exports?: PackageJson.Exports
+  description?: string
+  private?: boolean
+  version?: string
+  workspaces?: string[]
+  yakumo?: PackageConfig
+  peerDependenciesMeta?: Record<string, { optional?: boolean }>
+}
+
+export namespace PackageJson {
+  export type Exports = string | { [key: string]: Exports }
+}
+
+export interface Events<C extends Context = Context> extends cordis.Events<C> {}
+
+export interface Context {
+  [Context.events]: Events
+  yakumo: Yakumo
+  register(name: string, callback: () => void, options?: Options): void
+}
+
+export class Context extends cordis.Context {
+  constructor(config: any) {
+    super(config)
+    this.plugin(Yakumo)
+  }
+}
+
+export default class Yakumo extends cordis.Service {
   cwd: string
   argv: Arguments
-  config: ProjectConfig
   manager: Manager
   targets: Record<string, PackageJson>
   workspaces: Record<string, PackageJson>
   indent = detect(content).indent
+  commands: Commands = {}
 
-  constructor() {
+  constructor(ctx: Context, public config: ProjectConfig) {
+    super(ctx, 'yakumo', true)
+    ctx.root.mixin('yakumo', ['register'])
     this.cwd = cwd
-    this.config = config
     this.manager = manager
+
+    for (const name in config.pipeline) {
+      this.register(name, async () => {
+        const tasks = config.pipeline[name]
+        for (const task of tasks) {
+          const [name, ...args] = task.split(/\s+/g)
+          await this.execute(name, ...args)
+        }
+      })
+    }
+
+    ctx.plugin(prepare)
+  }
+
+  register(name: string, callback: () => void, options: Options = {}) {
+    this.commands[name] = [callback, options]
   }
 
   require(id: string) {
@@ -101,8 +148,8 @@ export class Project {
   }
 
   locate(name: string) {
-    if (config.alias[name]) {
-      return makeArray(config.alias[name]).map((path) => {
+    if (this.config.alias[name]) {
+      return makeArray(this.config.alias[name]).map((path) => {
         if (!this.workspaces[path]) {
           throw new Error(`cannot find workspace ${path} resolved by ${name}`)
         }
@@ -125,57 +172,32 @@ export class Project {
     return targets
   }
 
-  async emit(name: string, ...args: any) {
-    await Promise.all((hooks[name] || []).map((callback) => callback.call(this, ...args)))
-  }
-
   async save(path: string) {
     const content = JSON.stringify(this.workspaces[path], null, this.indent) + '\n'
     await fsp.writeFile(`${cwd}${path}/package.json`, content)
   }
-}
 
-export interface Hooks {}
+  async execute(name: string, ...args: string[]) {
+    requireSafe('yakumo-' + name)
+    if (!this.commands[name]) {
+      console.error(red(`unknown command: ${name}`))
+      process.exit(1)
+    }
 
-export const hooks: { [K in keyof Hooks]: Hooks[K][] } = {}
+    const [callback, options] = this.commands[name]
+    const argv = yargs([...process.argv.slice(3), ...args], options) as Arguments
+    argv.config = options
+    await this.initialize(argv)
+    return callback()
+  }
 
-export function addHook<K extends keyof Hooks>(name: K, callback: Hooks[K]) {
-  (hooks[name] ||= [] as never).push(callback)
-}
+  async start() {
+    await this.execute(process.argv[2])
+  }
 
-type CommandCallback = (project: Project) => Awaitable<void>
-
-export interface Arguments extends yargs.Arguments {
-  config: Options
-}
-
-export interface Options extends yargs.Options {
-  manual?: boolean
-}
-
-export const commands: Record<string, [CommandCallback, Options]> = {}
-
-export function register(name: string, callback: (project: Project) => void, options: Options = {}) {
-  commands[name] = [callback, options]
-}
-
-export type DependencyType = 'dependencies' | 'devDependencies' | 'peerDependencies' | 'optionalDependencies'
-
-export interface PackageJson extends Partial<Record<DependencyType, Record<string, string>>> {
-  name: string
-  type?: 'module' | 'commonjs'
-  main?: string
-  module?: string
-  bin?: string | Dict<string>
-  exports?: PackageJson.Exports
-  description?: string
-  private?: boolean
-  version?: string
-  workspaces?: string[]
-  yakumo?: PackageConfig
-  peerDependenciesMeta?: Record<string, { optional?: boolean }>
-}
-
-export namespace PackageJson {
-  export type Exports = string | { [key: string]: Exports }
+  async install() {
+    const agent = manager?.name || 'npm'
+    const code = await spawnAsync([agent, 'install'])
+    if (code) process.exit(code)
+  }
 }
