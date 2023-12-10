@@ -5,7 +5,7 @@
   "workspaces": [
     "external/*",
     "fixtures/*",
-    "fixtures/default/packages/*",
+    "fixtures/*/packages/*",
     "packages/*"
   ],
   "license": "MIT",
