@@ -8,6 +8,7 @@ import { promises as fsp, readFileSync } from 'fs'
 import { Module } from 'module'
 import { Dict, makeArray, pick } from 'cosmokit'
 import * as prepare from './plugins/prepare'
+import * as test from './plugins/test'
 
 export * from './utils'
 
@@ -100,7 +101,7 @@ export default class Yakumo extends cordis.Service {
     this.cwd = cwd
     this.manager = manager
 
-    for (const name in config.pipeline) {
+    for (const name in config.pipeline || {}) {
       this.register(name, async () => {
         const tasks = config.pipeline[name]
         for (const task of tasks) {
@@ -109,8 +110,6 @@ export default class Yakumo extends cordis.Service {
         }
       })
     }
-
-    ctx.plugin(prepare)
   }
 
   register(name: string, callback: () => void, options: Options = {}) {
@@ -147,8 +146,8 @@ export default class Yakumo extends cordis.Service {
     }))
   }
 
-  locate(name: string) {
-    if (this.config.alias[name]) {
+  locate(name: string, { includeRoot }: { includeRoot?: boolean } = {}) {
+    if (this.config.alias?.[name]) {
       return makeArray(this.config.alias[name]).map((path) => {
         if (!this.workspaces[path]) {
           throw new Error(`cannot find workspace ${path} resolved by ${name}`)
@@ -158,7 +157,7 @@ export default class Yakumo extends cordis.Service {
     }
 
     const targets = Object.keys(this.workspaces).filter((folder) => {
-      if (this.workspaces[folder].workspaces) return
+      if (!includeRoot && this.workspaces[folder].workspaces) return
       const [last] = folder.split('/').reverse()
       return name === last
     })
@@ -192,6 +191,12 @@ export default class Yakumo extends cordis.Service {
   }
 
   async start() {
+    this.ctx.plugin(prepare)
+    this.ctx.plugin(test)
+    if (!process.argv[2]) {
+      console.log('yakumo')
+      process.exit(0)
+    }
     await this.execute(process.argv[2])
   }
 

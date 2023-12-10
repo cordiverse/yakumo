@@ -1,4 +1,5 @@
 import { testExec } from '@yakumojs/test-utils'
+import { describe } from 'node:test'
 
 describe('basic', () => {
   testExec({ args: [] })
