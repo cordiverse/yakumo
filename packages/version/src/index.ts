@@ -1,7 +1,7 @@
 import { writeFile } from 'fs/promises'
 import { gt, SemVer } from 'semver'
 import { cyan, green } from 'kleur'
-import { confirm, cwd, PackageJson, Project, register } from 'yakumo'
+import Yakumo, { confirm, Context, cwd, PackageJson } from 'yakumo'
 
 const bumpTypes = ['major', 'minor', 'patch', 'prerelease', 'version', 'reset'] as const
 type BumpType = typeof bumpTypes[number]
@@ -72,7 +72,7 @@ class Package {
 class Graph {
   nodes: Record<string, Package> = {}
 
-  constructor(public project: Project) {
+  constructor(public project: Yakumo) {
     for (const path in project.workspaces) {
       this.nodes[path] = new Package(path)
     }
@@ -135,38 +135,40 @@ class Graph {
   }
 }
 
-register('version', async (project) => {
-  if (!project.argv._.length) {
-    const yes = await confirm('You did not specify any packages to bump. Do you want to bump all the packages?')
-    if (!yes) return
-  }
-
-  const flag = (() => {
-    for (const type of bumpTypes) {
-      if (type in project.argv) return type
+export function apply(ctx: Context) {
+  ctx.register('version', async () => {
+    if (!ctx.yakumo.argv._.length) {
+      const yes = await confirm('You did not specify any packages to bump. Do you want to bump all the packages?')
+      if (!yes) return
     }
-  })()
 
-  if (flag === 'version') {
-    // ensure valid version
-    new SemVer(project.argv.version)
-  }
+    const flag = (() => {
+      for (const type of bumpTypes) {
+        if (type in ctx.yakumo.argv) return type
+      }
+    })()
 
-  const graph = new Graph(project)
-  for (const path in project.targets) {
-    graph.bump(graph.nodes[path], flag)
-  }
+    if (flag === 'version') {
+      // ensure valid version
+      new SemVer(ctx.yakumo.argv.version)
+    }
 
-  await graph.save()
-}, {
-  alias: {
-    major: ['1'],
-    minor: ['2'],
-    patch: ['3'],
-    reset: ['0'],
-    prerelease: ['p'],
-    version: ['v'],
-    recursive: ['r'],
-  },
-  boolean: ['major', 'minor', 'patch', 'reset', 'prerelease', 'recursive'],
-})
+    const graph = new Graph(ctx.yakumo)
+    for (const path in ctx.yakumo.targets) {
+      graph.bump(graph.nodes[path], flag)
+    }
+
+    await graph.save()
+  }, {
+    alias: {
+      major: ['1'],
+      minor: ['2'],
+      patch: ['3'],
+      reset: ['0'],
+      prerelease: ['p'],
+      version: ['v'],
+      recursive: ['r'],
+    },
+    boolean: ['major', 'minor', 'patch', 'reset', 'prerelease', 'recursive'],
+  })
+}

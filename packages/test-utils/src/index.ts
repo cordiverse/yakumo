@@ -10,7 +10,7 @@ export interface TestExecOptions {
 export function testExec(options: TestExecOptions) {
   const command = options.args.join(' ')
   it(command, (done) => {
-    const child = spawn('node', ['-r', 'esbuild-register', require.resolve('yakumo/src/bin'), ...options.args], {
+    const child = spawn('node', ['-r', 'esbuild-register', require.resolve('yakumo/src/cli'), ...options.args], {
       cwd: path.resolve(__dirname, '../../../fixtures/default'),
       stdio: 'inherit',
     })

@@ -1,15 +1,15 @@
 import { build, BuildFailure, BuildOptions, Message, Plugin } from 'esbuild'
 import { dirname, extname, isAbsolute, join, relative, resolve } from 'path'
 import { cyan, red, yellow } from 'kleur'
-import { PackageJson, Project, register } from 'yakumo'
+import { Context, PackageJson, Project } from 'yakumo'
 import { load } from 'tsconfig-utils'
 import { Dict } from 'cosmokit'
 import globby from 'globby'
 
 declare module 'yakumo' {
-  interface Hooks {
-    'esbuild.before'(options: BuildOptions, meta: PackageJson): void
-    'esbuild.after'(options: BuildOptions, meta: PackageJson): void
+  interface Events {
+    'esbuild/before'(options: BuildOptions, meta: PackageJson): void
+    'esbuild/after'(options: BuildOptions, meta: PackageJson): void
   }
 }
 
@@ -191,14 +191,16 @@ async function compile(relpath: string, meta: PackageJson, project: Project) {
   return matrix
 }
 
-register('esbuild', async (project) => {
-  await Promise.all(Object.entries(project.targets).map(async ([key, value]) => {
-    const matrix = await compile(key, value, project)
-    await Promise.all(matrix.map(async (options) => {
-      await project.emit('esbuild.before', options, value)
-      await bundle(options)
-      await project.emit('esbuild.after', options, value)
-    })).catch(console.error)
-  }))
-  if (code) process.exit(code)
-})
+export function apply(ctx: Context) {
+  ctx.register('esbuild', async () => {
+    await Promise.all(Object.entries(ctx.yakumo.targets).map(async ([key, value]) => {
+      const matrix = await compile(key, value, ctx.yakumo as any)
+      await Promise.all(matrix.map(async (options) => {
+        await ctx.parallel('esbuild/before', options, value)
+        await bundle(options)
+        await ctx.parallel('esbuild/after', options, value)
+      })).catch(console.error)
+    }))
+    if (code) process.exit(code)
+  })
+}

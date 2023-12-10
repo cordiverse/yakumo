@@ -1,4 +1,4 @@
-import { cwd, exit, Manager, PackageJson, register, spawnAsync } from 'yakumo'
+import { Context, cwd, exit, Manager, PackageJson, spawnAsync } from 'yakumo'
 import { gt, prerelease } from 'semver'
 import { Awaitable } from 'cosmokit'
 import { join } from 'path'
@@ -11,9 +11,9 @@ declare module 'yakumo' {
     $copied?: boolean
   }
 
-  interface Hooks {
-    'publish.before'(this: Project, path: string, meta: PackageJson): Awaitable<void>
-    'publish.after'(this: Project, path: string, meta: PackageJson): Awaitable<void>
+  interface Events {
+    'publish/before'(this: Project, path: string, meta: PackageJson): Awaitable<void>
+    'publish/after'(this: Project, path: string, meta: PackageJson): Awaitable<void>
   }
 }
 
@@ -52,68 +52,70 @@ async function serial<S, T>(list: S[], fn: (item: S) => Promise<T>) {
   for (const item of list) await fn(item)
 }
 
-register('publish', async (project) => {
-  const { argv, targets } = project
-  const spinner = ora()
-  if (argv._.length) {
-    const pending = Object.keys(targets).filter(path => targets[path].private)
+export function apply(ctx: Context) {
+  ctx.register('publish', async () => {
+    const { argv, targets } = ctx.yakumo
+    const spinner = ora()
+    if (argv._.length) {
+      const pending = Object.keys(targets).filter(path => targets[path].private)
 
-    if (pending.length) {
-      const paths = pending.map(path => targets[path].name).join(', ')
-      const { value } = await prompts({
-        name: 'value',
-        type: 'confirm',
-        message: `workspace ${paths} ${pending.length > 1 ? 'are' : 'is'} private, switch to public?`,
-      })
-      if (!value) exit('operation cancelled.')
+      if (pending.length) {
+        const paths = pending.map(path => targets[path].name).join(', ')
+        const { value } = await prompts({
+          name: 'value',
+          type: 'confirm',
+          message: `workspace ${paths} ${pending.length > 1 ? 'are' : 'is'} private, switch to public?`,
+        })
+        if (!value) exit('operation cancelled.')
 
-      await Promise.all(pending.map(async (path) => {
-        delete targets[path].private
-        await project.save(path)
+        await Promise.all(pending.map(async (path) => {
+          delete targets[path].private
+          await ctx.yakumo.save(path)
+        }))
+      }
+    } else {
+      const entries = Object.entries(ctx.yakumo.targets)
+      let progress = 0
+      spinner.start(`Loading workspaces (0/${entries.length})`)
+      await Promise.all(entries.map(async ([path, meta]) => {
+        spinner.text = `Loading workspaces (${++progress}/${entries.length})`
+        if (!meta.private) {
+          const version = await getVersion(meta.name, isNext(meta.version))
+          if (gt(meta.version, version)) return
+        }
+        delete targets[path]
       }))
+      spinner.succeed()
     }
-  } else {
-    const entries = Object.entries(project.targets)
-    let progress = 0
-    spinner.start(`Loading workspaces (0/${entries.length})`)
-    await Promise.all(entries.map(async ([path, meta]) => {
-      spinner.text = `Loading workspaces (${++progress}/${entries.length})`
-      if (!meta.private) {
-        const version = await getVersion(meta.name, isNext(meta.version))
-        if (gt(meta.version, version)) return
-      }
-      delete targets[path]
-    }))
-    spinner.succeed()
-  }
 
-  const total = Object.keys(targets).length
-  if (!argv.debug) spinner.start(`Publishing packages (0/${total})`)
+    const total = Object.keys(targets).length
+    if (!argv.debug) spinner.start(`Publishing packages (0/${total})`)
 
-  let completed = 0, failed = 0
-  await (argv.debug ? serial : parallel)(Object.entries(targets), async ([path, meta]) => {
-    try {
-      await project.emit('publish.before', path, targets[path])
-      const args = [
-        '--tag', argv.tag ?? (isNext(meta.version) ? 'next' : 'latest'),
-        '--access', argv.access ?? 'public',
-      ]
-      if (argv.registry) args.push('--registry', argv.registry)
-      if (argv.otp) args.push('--otp', argv.otp)
-      const code = await publish(project.manager, path, meta, args, argv)
-      if (code) {
-        failed++
-        return
+    let completed = 0, failed = 0
+    await (argv.debug ? serial : parallel)(Object.entries(targets), async ([path, meta]) => {
+      try {
+        await ctx.parallel('publish/before', path, targets[path])
+        const args = [
+          '--tag', argv.tag ?? (isNext(meta.version) ? 'next' : 'latest'),
+          '--access', argv.access ?? 'public',
+        ]
+        if (argv.registry) args.push('--registry', argv.registry)
+        if (argv.otp) args.push('--otp', argv.otp)
+        const code = await publish(ctx.yakumo.manager, path, meta, args, argv)
+        if (code) {
+          failed++
+          return
+        }
+        await ctx.parallel('publish/after', path, targets[path])
+      } finally {
+        if (!argv.debug) spinner.text = `Publishing packages (${++completed}/${total})`
       }
-      await project.emit('publish.after', path, targets[path])
-    } finally {
-      if (!argv.debug) spinner.text = `Publishing packages (${++completed}/${total})`
+    })
+
+    if (failed) {
+      spinner.fail(`Published ${total - failed} packages, ${failed} failed.`)
+    } else {
+      spinner.succeed(`Published ${total} packages.`)
     }
   })
-
-  if (failed) {
-    spinner.fail(`Published ${total - failed} packages, ${failed} failed.`)
-  } else {
-    spinner.succeed(`Published ${total} packages.`)
-  }
-})
+}

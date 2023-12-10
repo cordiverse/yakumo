@@ -1,7 +1,10 @@
-import { addHook } from 'yakumo'
-import axios from 'axios'
+import { Context } from 'yakumo'
 import {} from 'yakumo-publish'
 
-addHook('publish.after', async (name, meta) => {
-  await axios.put('https://registry-direct.npmmirror.com/' + meta.name + '/sync?sync_upstream=true')
-})
+export function apply(ctx: Context) {
+  ctx.on('publish/after', async (name, meta) => {
+    await fetch('https://registry-direct.npmmirror.com/' + meta.name + '/sync?sync_upstream=true', {
+      method: 'PUT',
+    })
+  })
+}
