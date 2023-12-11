@@ -1,4 +1,4 @@
-import { Context, DependencyType, PackageJson, spawnAsync } from 'yakumo'
+import { Context, DependencyType, PackageJson, spawnAsync } from '..'
 import { cyan, green, red, yellow } from 'kleur'
 import { gt } from 'semver'
 import latest from 'latest-version'
@@ -9,13 +9,13 @@ interface UpgradeConfig {
   concurrency?: number
 }
 
-declare module 'yakumo' {
+declare module '..' {
   interface PackageJson {
     $dirty?: boolean
   }
 
   interface Commands {
-    upgrade: UpgradeConfig
+    upgrade?: UpgradeConfig
   }
 }
 

@@ -1,7 +1,7 @@
 {
   "name": "yakumo-publish-sync",
   "description": "Sync other registry after publish",
-  "version": "0.3.3",
+  "version": "1.0.0-alpha.0",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "files": [
@@ -26,7 +26,7 @@
     "registry"
   ],
   "peerDependencies": {
-    "yakumo": "^0.3.13",
+    "yakumo": "^1.0.0-alpha.0",
     "yakumo-publish": "^0.3.10"
   },
   "dependencies": {

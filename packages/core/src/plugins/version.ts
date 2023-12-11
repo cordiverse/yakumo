@@ -1,7 +1,7 @@
 import { writeFile } from 'fs/promises'
 import { gt, SemVer } from 'semver'
 import { cyan, green } from 'kleur'
-import Yakumo, { confirm, Context, cwd, PackageJson } from 'yakumo'
+import Yakumo, { confirm, Context, cwd, PackageJson } from '..'
 
 const bumpTypes = ['major', 'minor', 'patch', 'prerelease', 'version', 'reset'] as const
 type BumpType = typeof bumpTypes[number]

@@ -1,7 +1,7 @@
 import { build, BuildFailure, BuildOptions, Message, Plugin } from 'esbuild'
 import { dirname, extname, isAbsolute, join, relative, resolve } from 'path'
 import { cyan, red, yellow } from 'kleur'
-import { Context, PackageJson, Project } from 'yakumo'
+import Yakumo, { Context, PackageJson } from 'yakumo'
 import { load } from 'tsconfig-utils'
 import { Dict } from 'cosmokit'
 import globby from 'globby'
@@ -50,7 +50,7 @@ function bundle(options: BuildOptions) {
   })
 }
 
-async function compile(relpath: string, meta: PackageJson, project: Project) {
+async function compile(relpath: string, meta: PackageJson, yakumo: Yakumo) {
   // filter out private packages
   if (meta.private) return []
 
@@ -84,7 +84,7 @@ async function compile(relpath: string, meta: PackageJson, project: Project) {
     },
   }
 
-  const base = project.cwd + relpath
+  const base = yakumo.cwd + relpath
   const config = await load(base)
   const { rootDir, outFile, noEmit, emitDeclarationOnly, sourceMap } = config.compilerOptions
   if (!noEmit && !emitDeclarationOnly) return []

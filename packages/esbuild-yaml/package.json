@@ -1,7 +1,7 @@
 {
   "name": "yakumo-esbuild-yaml",
   "description": "Yaml support for yakumo esbuild",
-  "version": "0.3.1",
+  "version": "1.0.0-alpha.0",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "files": [
@@ -27,8 +27,8 @@
     "compile"
   ],
   "peerDependencies": {
-    "yakumo": "^0.3.13",
-    "yakumo-esbuild": "^0.3.26"
+    "yakumo": "^1.0.0-alpha.0",
+    "yakumo-esbuild": "^1.0.0-alpha.0"
   },
   "dependencies": {
     "js-yaml": "^4.1.0"

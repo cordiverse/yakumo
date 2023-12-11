@@ -89,7 +89,7 @@ export class Context extends cordis.Context {
   }
 }
 
-export default class Yakumo extends cordis.Service {
+export default class Yakumo {
   cwd: string
   argv: Arguments
   manager: Manager
@@ -99,10 +99,16 @@ export default class Yakumo extends cordis.Service {
   commands: Commands = {}
 
   constructor(ctx: Context, public config: ProjectConfig) {
-    super(ctx, 'yakumo', true)
+    ctx.provide('yakumo', this, true)
     ctx.root.mixin('yakumo', ['register'])
     this.cwd = cwd
     this.manager = manager
+
+    ctx.plugin(prepare)
+    ctx.plugin(publish)
+    ctx.plugin(test)
+    ctx.plugin(upgrade)
+    ctx.plugin(version)
 
     for (const name in config.pipeline || {}) {
       this.register(name, async () => {
@@ -113,6 +119,8 @@ export default class Yakumo extends cordis.Service {
         }
       })
     }
+
+    ctx.on('ready', () => this.start())
   }
 
   register(name: string, callback: () => void, options: Options = {}) {
@@ -180,7 +188,6 @@ export default class Yakumo extends cordis.Service {
   }
 
   async execute(name: string, ...args: string[]) {
-    requireSafe('yakumo-' + name)
     if (!this.commands[name]) {
       console.error(red(`unknown command: ${name}`))
       process.exit(1)
@@ -194,11 +201,6 @@ export default class Yakumo extends cordis.Service {
   }
 
   async start() {
-    this.ctx.plugin(prepare)
-    this.ctx.plugin(publish)
-    this.ctx.plugin(test)
-    this.ctx.plugin(upgrade)
-    this.ctx.plugin(version)
     if (!process.argv[2]) {
       console.log('yakumo')
       process.exit(0)
