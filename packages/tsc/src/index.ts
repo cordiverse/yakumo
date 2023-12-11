@@ -5,6 +5,14 @@ import { compile, load } from 'tsconfig-utils'
 import * as atsc from 'atsc'
 import * as dtsc from 'dtsc'
 
+declare module 'yakumo' {
+  interface PackageConfig {
+    tsc?: {
+      ignore?: string[]
+    }
+  }
+}
+
 interface Node {
   bundle: boolean
   path: string
@@ -68,7 +76,7 @@ export function apply(ctx: Context) {
         ...meta.peerDependencies,
       }
       for (const dep in deps) {
-        if (!nodes[dep]) continue
+        if (!nodes[dep] || meta.yakumo?.tsc?.ignore?.includes(dep)) continue
         nodes[name].prev.push(dep)
         nodes[dep].next.add(name)
       }
