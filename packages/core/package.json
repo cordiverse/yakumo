@@ -34,7 +34,7 @@
     "@types/yargs-parser": "^21.0.3"
   },
   "dependencies": {
-    "@cordisjs/cli": "^0.1.2",
+    "@cordisjs/cli": "^0.2.0",
     "cordis": "^3.4.0",
     "cosmokit": "^1.5.1",
     "detect-indent": "^6.1.0",

@@ -5,7 +5,7 @@ import latest from 'latest-version'
 import pMap from 'p-map'
 import ora from 'ora'
 
-interface UpgradeConfig {
+export interface Config {
   concurrency?: number
 }
 
@@ -13,16 +13,12 @@ declare module '..' {
   interface PackageJson {
     $dirty?: boolean
   }
-
-  interface Commands {
-    upgrade?: UpgradeConfig
-  }
 }
 
-export function apply(ctx: Context) {
+export function apply(ctx: Context, config: Config = {}) {
   ctx.register('upgrade', async () => {
-    const { targets, manager, config } = ctx.yakumo
-    const { concurrency = 10 } = config.commands.upgrade || {}
+    const { targets, manager } = ctx.yakumo
+    const { concurrency = 10 } = config || {}
     const deps: Record<string, Record<string, Partial<Record<DependencyType, string[]>>>> = {}
     for (const path in targets) {
       load(path, targets[path])

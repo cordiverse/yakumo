@@ -1,4 +1,5 @@
 import * as cordis from 'cordis'
+import * as logger from '@cordisjs/logger'
 import globby from 'globby'
 import yargs from 'yargs-parser'
 import detect from 'detect-indent'
@@ -101,6 +102,7 @@ export default class Yakumo {
   constructor(ctx: Context, public config: ProjectConfig) {
     ctx.provide('yakumo', this, true)
     ctx.root.mixin('yakumo', ['register'])
+    ctx.plugin(logger)
     this.cwd = cwd
     this.manager = manager
 

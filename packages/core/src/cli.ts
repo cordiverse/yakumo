@@ -1,5 +1,5 @@
 #!/usr/bin/env node
 
-import { start } from '@cordisjs/cli'
+import { main } from '@cordisjs/cli'
 
-start('yakumo')
+main({ name: 'yakumo' })
