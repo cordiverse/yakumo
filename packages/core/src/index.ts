@@ -8,7 +8,10 @@ import { promises as fsp, readFileSync } from 'fs'
 import { Module } from 'module'
 import { Dict, makeArray, pick } from 'cosmokit'
 import * as prepare from './plugins/prepare'
+import * as publish from './plugins/publish'
 import * as test from './plugins/test'
+import * as upgrade from './plugins/upgrade'
+import * as version from './plugins/version'
 
 export * from './utils'
 
@@ -192,7 +195,10 @@ export default class Yakumo extends cordis.Service {
 
   async start() {
     this.ctx.plugin(prepare)
+    this.ctx.plugin(publish)
     this.ctx.plugin(test)
+    this.ctx.plugin(upgrade)
+    this.ctx.plugin(version)
     if (!process.argv[2]) {
       console.log('yakumo')
       process.exit(0)

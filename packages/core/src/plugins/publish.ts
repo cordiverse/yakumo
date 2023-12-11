@@ -1,4 +1,4 @@
-import { Context, cwd, exit, Manager, PackageJson, spawnAsync } from 'yakumo'
+import { Context, cwd, exit, Manager, PackageJson, spawnAsync } from '..'
 import { gt, prerelease } from 'semver'
 import { Awaitable } from 'cosmokit'
 import { join } from 'path'
@@ -6,14 +6,14 @@ import latest from 'latest-version'
 import ora from 'ora'
 import prompts from 'prompts'
 
-declare module 'yakumo' {
+declare module '..' {
   interface PackageJson {
     $copied?: boolean
   }
 
   interface Events {
-    'publish/before'(this: Project, path: string, meta: PackageJson): Awaitable<void>
-    'publish/after'(this: Project, path: string, meta: PackageJson): Awaitable<void>
+    'publish/before'(path: string, meta: PackageJson): Awaitable<void>
+    'publish/after'(path: string, meta: PackageJson): Awaitable<void>
   }
 }
 
