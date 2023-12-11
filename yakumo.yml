@@ -6,7 +6,6 @@
         - esbuild
 - name: yakumo-esbuild
 - name: yakumo-esbuild-yaml
-- name: yakumo-mocha
 - name: yakumo-publish
 - name: yakumo-publish-sync
 - name: yakumo-tsc

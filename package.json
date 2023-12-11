@@ -15,12 +15,14 @@
     "bump": "yarn yakumo version",
     "dep": "yarn yakumo upgrade",
     "pub": "yarn yakumo publish",
+    "lint": "eslint --cache",
     "test": "yarn yakumo test default/index -r esbuild-register",
     "test:text": "shx rm -rf coverage && c8 -r text yarn test",
     "test:json": "shx rm -rf coverage && c8 -r json yarn test",
     "test:html": "shx rm -rf coverage && c8 -r html yarn test"
   },
   "devDependencies": {
+    "@cordisjs/eslint-config": "^1.0.4",
     "@types/chai": "^4.3.11",
     "@types/mocha": "^9.1.1",
     "@types/node": "^20.10.2",
@@ -28,6 +30,7 @@
     "chai": "^4.3.10",
     "esbuild": "^0.18.20",
     "esbuild-register": "^3.5.0",
+    "eslint": "^8.55.0",
     "mocha": "^9.2.2",
     "shx": "^0.3.4",
     "typescript": "^5.3.2"
