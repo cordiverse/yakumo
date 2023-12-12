@@ -2,7 +2,7 @@ import { Context, cwd, exit, Manager, PackageJson, spawnAsync } from '..'
 import { gt, prerelease } from 'semver'
 import { Awaitable } from 'cosmokit'
 import { join } from 'path'
-import latest from 'latest-version'
+import { latest } from '../utils'
 import ora from 'ora'
 import prompts from 'prompts'
 

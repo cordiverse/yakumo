@@ -1,7 +1,7 @@
 import { Context, DependencyType, PackageJson, spawnAsync } from '..'
 import { cyan, green, red, yellow } from 'kleur'
 import { gt } from 'semver'
-import latest from 'latest-version'
+import { latest } from '../utils'
 import pMap from 'p-map'
 import ora from 'ora'
 
