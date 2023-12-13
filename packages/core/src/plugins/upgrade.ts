@@ -15,7 +15,7 @@ declare module '..' {
   }
 }
 
-export function apply(ctx: Context, config: Config = {}) {
+export default function apply(ctx: Context, config: Config = {}) {
   ctx.register('upgrade', async () => {
     const { targets, manager } = ctx.yakumo
     const { concurrency = 10 } = config || {}

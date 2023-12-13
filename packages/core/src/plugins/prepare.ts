@@ -1,7 +1,7 @@
 import { Context } from '..'
 import picomatch from 'picomatch'
 
-export function apply(ctx: Context) {
+export default function apply(ctx: Context) {
   ctx.register('prepare', async () => {
     const { workspaces } = ctx.yakumo.workspaces['']
     const current = new Set(workspaces)

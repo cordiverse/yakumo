@@ -5,6 +5,7 @@ import { join } from 'path'
 import { latest } from '../utils'
 import ora from 'ora'
 import prompts from 'prompts'
+import assert from 'assert'
 
 declare module '..' {
   interface PackageJson {
@@ -52,7 +53,7 @@ async function serial<S, T>(list: S[], fn: (item: S) => Promise<T>) {
   for (const item of list) await fn(item)
 }
 
-export function apply(ctx: Context) {
+export default function apply(ctx: Context) {
   ctx.register('publish', async () => {
     const { argv, targets } = ctx.yakumo
     const spinner = ora()
@@ -102,11 +103,10 @@ export function apply(ctx: Context) {
         if (argv.registry) args.push('--registry', argv.registry)
         if (argv.otp) args.push('--otp', argv.otp)
         const code = await publish(ctx.yakumo.manager, path, meta, args, argv)
-        if (code) {
-          failed++
-          return
-        }
+        assert(!code)
         await ctx.parallel('publish/after', path, targets[path])
+      } catch (e) {
+        failed++
       } finally {
         if (!argv.debug) spinner.text = `Publishing packages (${++completed}/${total})`
       }

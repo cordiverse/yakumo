@@ -135,7 +135,7 @@ class Graph {
   }
 }
 
-export function apply(ctx: Context) {
+export default function apply(ctx: Context) {
   ctx.register('version', async () => {
     if (!ctx.yakumo.argv._.length) {
       const yes = await confirm('You did not specify any packages to bump. Do you want to bump all the packages?')
