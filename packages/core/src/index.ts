@@ -194,8 +194,7 @@ export default class Yakumo {
 
     const targets = Object.keys(this.workspaces).filter((folder) => {
       if (!filter(this.workspaces[folder], folder)) return
-      const [last] = folder.split('/').reverse()
-      return name === last
+      return folder.endsWith('/' + name)
     })
 
     if (!targets.length) {

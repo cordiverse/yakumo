@@ -48,7 +48,6 @@ export namespace latest {
 export async function latest(name: string, options: latest.Options = {}) {
   const registry = await (registryTask ||= getRegistry())
   const packageUrl = new URL(encodeURIComponent(name).replace(/^%40/, '@'), registry)
-  console.log(packageUrl)
   const response = await fetch(packageUrl, {
     headers: {
       'Accept': 'application/vnd.npm.install-v1+json; q=1.0, application/json; q=0.8, */*',

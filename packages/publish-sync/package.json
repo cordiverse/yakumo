@@ -26,6 +26,6 @@
     "registry"
   ],
   "peerDependencies": {
-    "yakumo": "^1.0.0-alpha.4"
+    "yakumo": "^1.0.0-alpha.7"
   }
 }
