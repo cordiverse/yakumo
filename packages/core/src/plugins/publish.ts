@@ -55,47 +55,51 @@ async function serial<S, T>(list: S[], fn: (item: S) => Promise<T>) {
 
 export default function apply(ctx: Context) {
   ctx.register('publish', async () => {
-    const { argv, targets } = ctx.yakumo
+    const { argv } = ctx.yakumo
     const spinner = ora()
-    if (argv._.length) {
-      const pending = Object.keys(targets).filter(path => targets[path].private)
+    let paths = ctx.yakumo.locate(argv._, {
+      filter: (meta) => {
+        // 1. workspace roots are always private
+        // 2. ignore private packages if not explicitly specified
+        return argv._.length ? !meta.workspaces : !meta.private
+      },
+    })
 
+    if (argv._.length) {
+      const pending = paths.filter(path => ctx.yakumo.workspaces[path].private)
       if (pending.length) {
-        const paths = pending.map(path => targets[path].name).join(', ')
+        const paths = pending.map(path => ctx.yakumo.workspaces[path].name).join(', ')
         const { value } = await prompts({
           name: 'value',
           type: 'confirm',
           message: `workspace ${paths} ${pending.length > 1 ? 'are' : 'is'} private, switch to public?`,
         })
         if (!value) exit('operation cancelled.')
-
         await Promise.all(pending.map(async (path) => {
-          delete targets[path].private
+          delete ctx.yakumo.workspaces[path].private
           await ctx.yakumo.save(path)
         }))
       }
     } else {
-      const entries = Object.entries(ctx.yakumo.targets)
       let progress = 0
-      spinner.start(`Loading workspaces (0/${entries.length})`)
-      await Promise.all(entries.map(async ([path, meta]) => {
-        spinner.text = `Loading workspaces (${++progress}/${entries.length})`
-        if (!meta.private) {
-          const version = await getVersion(meta.name, isNext(meta.version))
-          if (gt(meta.version, version)) return
-        }
-        delete targets[path]
-      }))
+      spinner.start(`Loading workspaces (0/${paths.length})`)
+      paths = (await Promise.all(paths.map(async (path) => {
+        const meta = ctx.yakumo.workspaces[path]
+        spinner.text = `Loading workspaces (${++progress}/${paths.length})`
+        const version = await getVersion(meta.name, isNext(meta.version))
+        if (gt(meta.version, version)) return path
+      }))).filter(Boolean)
       spinner.succeed()
     }
 
-    const total = Object.keys(targets).length
+    const total = paths.length
     if (!argv.debug) spinner.start(`Publishing packages (0/${total})`)
 
     let completed = 0, failed = 0
-    await (argv.debug ? serial : parallel)(Object.entries(targets), async ([path, meta]) => {
+    await (argv.debug ? serial : parallel)(paths, async (path) => {
+      const meta = ctx.yakumo.workspaces[path]
       try {
-        await ctx.parallel('publish/before', path, targets[path])
+        await ctx.parallel('publish/before', path, meta)
         const args = [
           '--tag', argv.tag ?? (isNext(meta.version) ? 'next' : 'latest'),
           '--access', argv.access ?? 'public',
@@ -104,7 +108,7 @@ export default function apply(ctx: Context) {
         if (argv.otp) args.push('--otp', argv.otp)
         const code = await publish(ctx.yakumo.manager, path, meta, args, argv)
         assert(!code)
-        await ctx.parallel('publish/after', path, targets[path])
+        await ctx.parallel('publish/after', path, meta)
       } catch (e) {
         failed++
       } finally {

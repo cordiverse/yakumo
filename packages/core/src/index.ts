@@ -53,6 +53,7 @@ export interface Manager {
 
 export interface Arguments extends yargs.Arguments {
   config: Options
+  _: string[]
 }
 
 export interface Options extends yargs.Options {
@@ -95,10 +96,16 @@ export class Context extends cordis.Context {
   }
 }
 
+export interface LocateOptions {
+  includeRoot?: boolean
+  filter?(meta: PackageJson, path: string): boolean
+}
+
 export default class Yakumo {
   cwd: string
   argv: Arguments
   manager: Manager
+  /** @deprecated */
   targets: Record<string, PackageJson>
   workspaces: Record<string, PackageJson>
   indent = detect(content).indent
@@ -164,7 +171,18 @@ export default class Yakumo {
     }))
   }
 
-  locate(name: string, { includeRoot }: { includeRoot?: boolean } = {}) {
+  locate(name: string | string[], options: LocateOptions = {}): string[] {
+    const filter = options.filter || ((meta) => options.includeRoot || !meta.workspaces)
+    if (Array.isArray(name)) {
+      if (!name.length) {
+        return Object.keys(this.workspaces).filter((folder) => {
+          return filter(this.workspaces[folder], folder)
+        })
+      } else {
+        return name.flatMap((name) => this.locate(name, options))
+      }
+    }
+
     if (this.config.alias?.[name]) {
       return makeArray(this.config.alias[name]).map((path) => {
         if (!this.workspaces[path]) {
@@ -175,7 +193,7 @@ export default class Yakumo {
     }
 
     const targets = Object.keys(this.workspaces).filter((folder) => {
-      if (!includeRoot && this.workspaces[folder].workspaces) return
+      if (!filter(this.workspaces[folder], folder)) return
       const [last] = folder.split('/').reverse()
       return name === last
     })

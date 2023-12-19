@@ -210,13 +210,15 @@ const yamlPlugin = (options: yaml.LoadOptions = {}): Plugin => ({
 
 export function apply(ctx: Context) {
   ctx.register('esbuild', async () => {
-    await Promise.all(Object.entries(ctx.yakumo.targets).map(async ([key, value]) => {
-      const matrix = await compile(key, value, ctx.yakumo as any)
+    const paths = ctx.yakumo.locate(ctx.yakumo.argv._)
+    await Promise.all(paths.map(async (path) => {
+      const meta = ctx.yakumo.workspaces[path]
+      const matrix = await compile(path, meta, ctx.yakumo)
       await Promise.all(matrix.map(async (options) => {
         options.plugins.push(yamlPlugin())
-        await ctx.parallel('esbuild/before', options, value)
+        await ctx.parallel('esbuild/before', options, meta)
         await bundle(options)
-        await ctx.parallel('esbuild/after', options, value)
+        await ctx.parallel('esbuild/after', options, meta)
       })).catch(console.error)
     }))
     if (code) process.exit(code)

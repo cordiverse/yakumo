@@ -154,7 +154,8 @@ export default function apply(ctx: Context) {
     }
 
     const graph = new Graph(ctx.yakumo)
-    for (const path in ctx.yakumo.targets) {
+    const paths = ctx.yakumo.locate(ctx.yakumo.argv._)
+    for (const path of paths) {
       graph.bump(graph.nodes[path], flag)
     }
 

@@ -13,7 +13,7 @@ export function apply(ctx: Context) {
       opts._ = opts._.flatMap((arg: string) => {
         const [folder] = arg.split('/', 1)
         const name = arg.slice(folder.length + 1) || '*'
-        return ctx.yakumo.locate(folder).map((path) => {
+        return ctx.yakumo.locate(folder, { includeRoot: true }).map((path) => {
           return `${path}/tests/${name}.spec.ts`.slice(1)
         })
       })

@@ -37,11 +37,12 @@ async function bundleNodes(nodes: Node[]) {
 
 export function apply(ctx: Context) {
   ctx.register('tsc', async () => {
-    const { targets, argv } = ctx.yakumo
+    const { argv } = ctx.yakumo
+    const paths = ctx.yakumo.locate(ctx.yakumo.argv._)
 
     // build clean
     if (argv.clean) {
-      const tasks = Object.keys(targets).map(async (path) => {
+      const tasks = paths.map(async (path) => {
         const fullpath = join(cwd, path)
         const tsconfig = await load(fullpath)
         await Promise.all([
@@ -56,8 +57,8 @@ export function apply(ctx: Context) {
 
     // Step 1: initialize nodes
     const nodes: Record<string, Node> = {}
-    for (const path in targets) {
-      const meta = targets[path]
+    for (const path of paths) {
+      const meta = ctx.yakumo.workspaces[path]
       if (!meta.main && !meta.exports) continue
       const fullpath = join(cwd, path)
       try {
@@ -127,5 +128,7 @@ export function apply(ctx: Context) {
       }
       await Promise.all(tasks)
     }
+  }, {
+    boolean: ['clean'],
   })
 }
