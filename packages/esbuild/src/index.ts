@@ -4,6 +4,8 @@ import { cyan, red, yellow } from 'kleur'
 import Yakumo, { Context, PackageJson } from 'yakumo'
 import { load } from 'tsconfig-utils'
 import { Dict } from 'cosmokit'
+import { promises as fs } from 'fs'
+import * as yaml from 'js-yaml'
 import globby from 'globby'
 
 declare module 'yakumo' {
@@ -191,11 +193,27 @@ async function compile(relpath: string, meta: PackageJson, yakumo: Yakumo) {
   return matrix
 }
 
+const yamlPlugin = (options: yaml.LoadOptions = {}): Plugin => ({
+  name: 'yaml',
+  setup(build) {
+    build.initialOptions.resolveExtensions.push('.yml', '.yaml')
+
+    build.onLoad({ filter: /\.ya?ml$/ }, async ({ path }) => {
+      const source = await fs.readFile(path, 'utf8')
+      return {
+        loader: 'json',
+        contents: JSON.stringify(yaml.load(source, options)),
+      }
+    })
+  },
+})
+
 export function apply(ctx: Context) {
   ctx.register('esbuild', async () => {
     await Promise.all(Object.entries(ctx.yakumo.targets).map(async ([key, value]) => {
       const matrix = await compile(key, value, ctx.yakumo as any)
       await Promise.all(matrix.map(async (options) => {
+        options.plugins.push(yamlPlugin())
         await ctx.parallel('esbuild/before', options, value)
         await bundle(options)
         await ctx.parallel('esbuild/after', options, value)

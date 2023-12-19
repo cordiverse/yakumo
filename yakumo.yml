@@ -5,6 +5,5 @@
         - tsc
         - esbuild
 - name: yakumo-esbuild
-- name: yakumo-esbuild-yaml
 - name: yakumo-publish-sync
 - name: yakumo-tsc
