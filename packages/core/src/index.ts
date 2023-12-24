@@ -6,8 +6,7 @@ import detect from 'detect-indent'
 import { manager, spawnAsync } from './utils'
 import { red } from 'kleur'
 import { promises as fsp, readFileSync } from 'fs'
-import { Module } from 'module'
-import { Dict, makeArray, pick } from 'cosmokit'
+import { Dict, makeArray } from 'cosmokit'
 import prepare from './plugins/prepare'
 import publish from './plugins/publish'
 import test from './plugins/test'
@@ -24,16 +23,6 @@ export * from './utils'
 export const cwd = process.cwd()
 const content = readFileSync(`${cwd}/package.json`, 'utf8')
 export const meta: PackageJson = JSON.parse(content)
-
-export const configRequire = Module.createRequire(cwd + '/package.json')
-
-export function requireSafe(id: string) {
-  try {
-    return configRequire(id)
-  } catch (e) {
-    if (e.code !== 'MODULE_NOT_FOUND') throw e
-  }
-}
 
 export interface Commands {}
 
@@ -62,7 +51,7 @@ export interface Options extends yargs.Options {
 
 export type DependencyType = 'dependencies' | 'devDependencies' | 'peerDependencies' | 'optionalDependencies'
 
-export interface PackageJson extends Partial<Record<DependencyType, Record<string, string>>> {
+export interface PackageJson extends Partial<Record<DependencyType, Dict<string>>> {
   name: string
   type?: 'module' | 'commonjs'
   main?: string
@@ -74,7 +63,7 @@ export interface PackageJson extends Partial<Record<DependencyType, Record<strin
   version?: string
   workspaces?: string[]
   yakumo?: PackageConfig
-  peerDependenciesMeta?: Record<string, { optional?: boolean }>
+  peerDependenciesMeta?: Dict<{ optional?: boolean }>
 }
 
 export namespace PackageJson {
@@ -105,15 +94,13 @@ export default class Yakumo {
   cwd: string
   argv: Arguments
   manager: Manager
-  /** @deprecated */
-  targets: Record<string, PackageJson>
-  workspaces: Record<string, PackageJson>
+  workspaces: Dict<PackageJson>
   indent = detect(content).indent
   commands: Commands = {}
 
   constructor(ctx: Context, public config: ProjectConfig) {
     ctx.provide('yakumo', this, true)
-    ctx.root.mixin('yakumo', ['register'])
+    ctx.mixin('yakumo', ['register'])
     ctx.plugin(logger)
     this.cwd = cwd
     this.manager = manager
@@ -141,10 +128,6 @@ export default class Yakumo {
     this.commands[name] = [callback, options]
   }
 
-  require(id: string) {
-    return configRequire(id)
-  }
-
   async initialize(argv: Arguments) {
     this.argv = argv
     const folders = await globby(meta.workspaces || [], {
@@ -160,15 +143,6 @@ export default class Yakumo {
         return [path, require(`${cwd}${path}/package.json`)] as [string, PackageJson]
       } catch {}
     }).filter(Boolean))
-
-    if (!argv._.length || argv.config.manual) {
-      this.targets = { ...this.workspaces }
-      return
-    }
-
-    this.targets = pick(this.workspaces, argv._.flatMap((name: string) => {
-      return this.locate(name)
-    }))
   }
 
   locate(name: string | string[], options: LocateOptions = {}): string[] {

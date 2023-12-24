@@ -17,16 +17,17 @@ declare module '..' {
 
 export default function apply(ctx: Context, config: Config = {}) {
   ctx.register('upgrade', async () => {
-    const { targets, manager } = ctx.yakumo
+    const paths = ctx.yakumo.locate(ctx.yakumo.argv._)
+    const { manager } = ctx.yakumo
     const { concurrency = 10 } = config || {}
     const deps: Record<string, Record<string, Partial<Record<DependencyType, string[]>>>> = {}
-    for (const path in targets) {
-      load(path, targets[path])
+    for (const path of paths) {
+      load(path, ctx.yakumo.workspaces[path])
     }
 
     const output: string[] = []
     const requests = Object.keys(deps)
-    const names = Object.values(targets).map(p => p.name)
+    const names = paths.map(path => ctx.yakumo.workspaces[path].name)
     const spinner = ora(`progress: 0/${requests.length}`).start()
     let progress = 0
     function updateProgress() {
@@ -52,18 +53,18 @@ export default function apply(ctx: Context, config: Config = {}) {
       const newRange = oldRange[0] + newVersion
       output.push(`- ${yellow(dep)}: ${cyan(oldVersion)} -> ${green(newVersion)}${newVersion === lastestVersion ? '' : ` (latest: ${lastestVersion})`}`)
       for (const name in deps[request]) {
-        Object.defineProperty(targets[name], '$dirty', { value: true })
+        Object.defineProperty(ctx.yakumo.workspaces[name], '$dirty', { value: true })
         for (const type in deps[request][name]) {
           for (const key of deps[request][name][type]) {
-            targets[name][type][key] = targets[name][type][key].slice(0, -oldRange.length) + newRange
+            ctx.yakumo.workspaces[name][type][key] = ctx.yakumo.workspaces[name][type][key].slice(0, -oldRange.length) + newRange
           }
         }
       }
     }, { concurrency })
     spinner.succeed()
 
-    for (const path in targets) {
-      if (!targets[path].$dirty) continue
+    for (const path of paths) {
+      if (!ctx.yakumo.workspaces[path].$dirty) continue
       await ctx.yakumo.save(path)
     }
 
@@ -82,7 +83,7 @@ export default function apply(ctx: Context, config: Config = {}) {
           const value = meta[type][key]
           const prefix = /^(npm:.+@)?/.exec(value)[0]
           const range = value.slice(prefix.length)
-          if (targets[key] || !'^~'.includes(range[0])) continue
+          if (ctx.yakumo.workspaces[key] || !'^~'.includes(range[0])) continue
           const request = (prefix ? prefix.slice(4, -1) : key) + ':' + range
           ;(((deps[request] ||= {})[path] ||= {})[type] ||= []).push(key)
         }

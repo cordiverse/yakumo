@@ -121,5 +121,7 @@ export default function apply(ctx: Context) {
     } else {
       spinner.succeed(`Published ${total} packages.`)
     }
+  }, {
+    boolean: ['debug'],
   })
 }
