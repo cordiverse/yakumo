@@ -36,7 +36,6 @@ export default function apply(ctx: Context) {
       await ctx.yakumo.install()
     }
   }, {
-    manual: true,
     alias: {
       clean: ['c'],
     },

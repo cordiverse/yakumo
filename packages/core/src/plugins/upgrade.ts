@@ -89,7 +89,5 @@ export default function apply(ctx: Context, config: Config = {}) {
         }
       }
     }
-  }, {
-    manual: true,
   })
 }

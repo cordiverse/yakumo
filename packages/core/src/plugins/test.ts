@@ -45,7 +45,5 @@ export default function apply(ctx: Context) {
     process.on('SIGINT', () => {
       child.kill('SIGINT')
     })
-  }, {
-    manual: true,
   })
 }

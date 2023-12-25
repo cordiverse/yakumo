@@ -7,6 +7,7 @@ import { manager, spawnAsync } from './utils'
 import { red } from 'kleur'
 import { promises as fsp, readFileSync } from 'fs'
 import { Dict, makeArray } from 'cosmokit'
+import list from './plugins/list'
 import prepare from './plugins/prepare'
 import publish from './plugins/publish'
 import test from './plugins/test'
@@ -45,9 +46,7 @@ export interface Arguments extends yargs.Arguments {
   _: string[]
 }
 
-export interface Options extends yargs.Options {
-  manual?: boolean
-}
+export interface Options extends yargs.Options {}
 
 export type DependencyType = 'dependencies' | 'devDependencies' | 'peerDependencies' | 'optionalDependencies'
 
@@ -105,6 +104,7 @@ export default class Yakumo {
     this.cwd = cwd
     this.manager = manager
 
+    ctx.plugin(list)
     ctx.plugin(prepare)
     ctx.plugin(publish)
     ctx.plugin(test)
