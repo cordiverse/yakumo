@@ -1,7 +1,8 @@
 {
   "name": "yakumo",
   "description": "Manage complex workspaces with ease",
-  "version": "1.0.0-alpha.7",
+  "version": "1.0.0-beta.2",
+  "type": "module",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "bin": "lib/cli.js",
@@ -9,7 +10,8 @@
     "node": "^18.0.0 || >=20.0.0"
   },
   "files": [
-    "lib"
+    "lib",
+    "src"
   ],
   "author": "Shigma <shigma10826@gmail.com>",
   "license": "MIT",
@@ -34,9 +36,9 @@
     "@types/yargs-parser": "^21.0.3"
   },
   "dependencies": {
-    "@cordisjs/cli": "^0.2.0",
-    "cordis": "^3.4.0",
-    "cosmokit": "^1.5.1",
+    "@cordisjs/cli": "^0.3.0",
+    "cordis": "^3.6.1",
+    "cosmokit": "^1.5.2",
     "detect-indent": "^6.1.0",
     "execa": "^5.1.1",
     "get-registry": "^1.1.0",
