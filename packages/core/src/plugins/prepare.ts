@@ -1,4 +1,4 @@
-import { Context } from '..'
+import { Context } from '../index.js'
 import picomatch from 'picomatch'
 
 export default function apply(ctx: Context) {
@@ -6,7 +6,7 @@ export default function apply(ctx: Context) {
     const { workspaces } = ctx.yakumo.workspaces['']
     const current = new Set(workspaces)
     if (!current.size) return
-    const match = picomatch(workspaces)
+    const match = picomatch(workspaces!)
     let hasUpdate = false
     for (const prefix in ctx.yakumo.workspaces) {
       if (!prefix) continue

@@ -1,10 +1,14 @@
 import { Context } from 'yakumo'
 import { spawn } from 'child_process'
+// @ts-ignore
 import { loadOptions } from 'mocha/lib/cli/options'
+// @ts-ignore
 import { isNodeFlag } from 'mocha/lib/cli/node-flags'
 import unparse from 'yargs-unparser'
 
 const trimV8Option = value => value !== 'v8-options' && /^v8-/.test(value) ? value.slice(3) : value
+
+export const inject = ['yakumo']
 
 export function apply(ctx: Context) {
   ctx.register('mocha', async () => {
@@ -45,7 +49,7 @@ export function apply(ctx: Context) {
         if (signal) {
           process.kill(process.pid, signal)
         } else {
-          process.exit(code)
+          process.exit(code ?? undefined)
         }
       })
     })
@@ -53,7 +57,5 @@ export function apply(ctx: Context) {
     process.on('SIGINT', () => {
       child.kill('SIGINT')
     })
-  }, {
-    manual: true,
   })
 }

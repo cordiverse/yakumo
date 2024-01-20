@@ -1,38 +1,34 @@
 import * as cordis from 'cordis'
-import * as logger from '@cordisjs/logger'
 import globby from 'globby'
 import yargs from 'yargs-parser'
 import detect from 'detect-indent'
-import { manager, spawnAsync } from './utils'
-import { red } from 'kleur'
-import { promises as fsp, readFileSync } from 'fs'
+import { manager, spawnAsync } from './utils.js'
+import kleur from 'kleur'
+import { promises as fs, readFileSync } from 'node:fs'
 import { Dict, makeArray } from 'cosmokit'
-import list from './plugins/list'
-import prepare from './plugins/prepare'
-import publish from './plugins/publish'
-import test from './plugins/test'
-import upgrade from './plugins/upgrade'
-import version from './plugins/version'
+import list from './plugins/list.js'
+import prepare from './plugins/prepare.js'
+import publish from './plugins/publish.js'
+import test from './plugins/test.js'
+import upgrade from './plugins/upgrade.js'
+import version from './plugins/version.js'
 
-export * from './plugins/prepare'
-export * from './plugins/publish'
-export * from './plugins/test'
-export * from './plugins/upgrade'
-export * from './plugins/version'
-export * from './utils'
+export * from './plugins/prepare.js'
+export * from './plugins/publish.js'
+export * from './plugins/test.js'
+export * from './plugins/upgrade.js'
+export * from './plugins/version.js'
+export * from './utils.js'
 
 export const cwd = process.cwd()
 const content = readFileSync(`${cwd}/package.json`, 'utf8')
 export const meta: PackageJson = JSON.parse(content)
 
-export interface Commands {}
-
 export interface PackageConfig {}
 
 export interface ProjectConfig {
   alias?: Dict<string | string[]>
-  require?: string[]
-  commands?: Commands
+  commands?: Dict
   pipeline?: Dict<string[]>
 }
 
@@ -59,7 +55,7 @@ export interface PackageJson extends Partial<Record<DependencyType, Dict<string>
   exports?: PackageJson.Exports
   description?: string
   private?: boolean
-  version?: string
+  version: string
   workspaces?: string[]
   yakumo?: PackageConfig
   peerDependenciesMeta?: Dict<{ optional?: boolean }>
@@ -69,6 +65,7 @@ export namespace PackageJson {
   export type Exports = string | { [key: string]: Exports }
 }
 
+// @ts-ignore
 export interface Events<C extends Context = Context> extends cordis.Events<C> {}
 
 export interface Context {
@@ -91,16 +88,17 @@ export interface LocateOptions {
 
 export default class Yakumo {
   cwd: string
-  argv: Arguments
+  args = process.argv.slice(2)
+  argv!: Arguments
   manager: Manager
-  workspaces: Dict<PackageJson>
+  workspaces!: Dict<PackageJson>
   indent = detect(content).indent
-  commands: Commands = {}
+  commands: Dict = {}
 
   constructor(ctx: Context, public config: ProjectConfig) {
-    ctx.provide('yakumo', this, true)
+    ctx.provide('yakumo', undefined, true)
     ctx.mixin('yakumo', ['register'])
-    ctx.plugin(logger)
+    ctx.yakumo = this
     this.cwd = cwd
     this.manager = manager
 
@@ -113,7 +111,7 @@ export default class Yakumo {
 
     for (const name in config.pipeline || {}) {
       this.register(name, async () => {
-        const tasks = config.pipeline[name]
+        const tasks = config.pipeline![name]
         for (const task of tasks) {
           const [name, ...args] = task.split(/\s+/g)
           await this.execute(name, ...args)
@@ -137,12 +135,14 @@ export default class Yakumo {
     })
     folders.unshift('')
 
-    this.workspaces = Object.fromEntries(folders.map((path) => {
+    this.workspaces = Object.fromEntries((await Promise.all(folders.map(async (path) => {
       if (path) path = '/' + path
       try {
-        return [path, require(`${cwd}${path}/package.json`)] as [string, PackageJson]
+        const content = await fs.readFile(`${cwd}${path}/package.json`, 'utf8')
+        return [path, JSON.parse(content)] as [string, PackageJson]
       } catch {}
-    }).filter(Boolean))
+      return null! // workaround silly strictNullChecks
+    }))).filter(Boolean))
   }
 
   locate(name: string | string[], options: LocateOptions = {}): string[] {
@@ -182,28 +182,28 @@ export default class Yakumo {
 
   async save(path: string) {
     const content = JSON.stringify(this.workspaces[path], null, this.indent) + '\n'
-    await fsp.writeFile(`${cwd}${path}/package.json`, content)
+    await fs.writeFile(`${cwd}${path}/package.json`, content)
   }
 
   async execute(name: string, ...args: string[]) {
     if (!this.commands[name]) {
-      console.error(red(`unknown command: ${name}`))
+      console.error(kleur.red(`unknown command: ${name}`))
       process.exit(1)
     }
 
     const [callback, options] = this.commands[name]
-    const argv = yargs([...process.argv.slice(3), ...args], options) as Arguments
+    const argv = yargs([...this.args.slice(1), ...args], options) as Arguments
     argv.config = options
     await this.initialize(argv)
     return callback()
   }
 
   async start() {
-    if (!process.argv[2]) {
+    if (!this.args.length) {
       console.log('yakumo')
       process.exit(0)
     }
-    await this.execute(process.argv[2])
+    await this.execute(this.args[0])
   }
 
   async install() {

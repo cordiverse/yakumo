@@ -1,13 +1,13 @@
-import { Context, cwd, exit, Manager, PackageJson, spawnAsync } from '..'
+import { Context, cwd, exit, Manager, PackageJson, spawnAsync } from '../index.js'
 import { gt, prerelease } from 'semver'
 import { Awaitable } from 'cosmokit'
 import { join } from 'path'
-import { latest } from '../utils'
+import { latest } from '../utils.js'
 import ora from 'ora'
 import prompts from 'prompts'
 import assert from 'assert'
 
-declare module '..' {
+declare module '../index.js' {
   interface PackageJson {
     $copied?: boolean
   }
@@ -88,6 +88,7 @@ export default function apply(ctx: Context) {
         spinner.text = `Loading workspaces (${++progress}/${paths.length})`
         const version = await getVersion(meta.name, isNext(meta.version))
         if (gt(meta.version, version)) return path
+        return null! // workaround silly strictNullChecks
       }))).filter(Boolean)
       spinner.succeed()
     }

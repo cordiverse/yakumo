@@ -1,5 +1,5 @@
 import { spawn } from 'child_process'
-import { Context } from '..'
+import { Context } from '../index.js'
 import parse from 'yargs-parser'
 import unparse from 'yargs-unparser'
 import globby from 'globby'
@@ -37,7 +37,7 @@ export default function apply(ctx: Context) {
         if (signal) {
           process.kill(process.pid, signal)
         } else {
-          process.exit(code)
+          process.exit(code ?? undefined)
         }
       })
     })

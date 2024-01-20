@@ -1,7 +1,8 @@
 import { writeFile } from 'fs/promises'
+import { readFileSync } from 'fs'
 import { gt, SemVer } from 'semver'
-import { cyan, green } from 'kleur'
-import Yakumo, { confirm, Context, cwd, PackageJson } from '..'
+import kleur from 'kleur'
+import Yakumo, { confirm, Context, cwd, PackageJson } from '../index.js'
 
 const bumpTypes = ['major', 'minor', 'patch', 'prerelease', 'version', 'reset'] as const
 type BumpType = typeof bumpTypes[number]
@@ -9,10 +10,11 @@ type BumpType = typeof bumpTypes[number]
 class Package {
   meta: PackageJson
   version: string
-  dirty: boolean
+  dirty?: boolean
 
   constructor(public path: string) {
-    this.meta = require(`${cwd}/${path}/package.json`)
+    const content = readFileSync(`${cwd}/${path}/package.json`, 'utf8')
+    this.meta = JSON.parse(content)
     this.version = this.meta.version
   }
 
@@ -41,7 +43,7 @@ class Package {
         version.prerelease = [{
           alpha: 'beta',
           beta: 'rc',
-        }[version.prerelease[0]], 0]
+        }[version.prerelease[0]]!, 0]
       } else {
         version = new SemVer(`${version.major + 1}.0.0-alpha.0`)
       }
@@ -107,9 +109,9 @@ class Graph {
           function update(prefix: string) {
             const range = value.slice(prefix.length)
             if (range.includes(':')) return
-            const modifier = /^[\^~]?/.exec(range)[0]
+            const modifier = /^[\^~]?/.exec(range)![0]
             if (range === modifier + version) return
-            target.meta[type][key] = prefix + modifier + version
+            target.meta[type]![key] = prefix + modifier + version
             target.dirty = true
             if (type !== 'devDependencies') {
               dependents.add(target)
@@ -128,7 +130,7 @@ class Graph {
       if (node.version === node.meta.version) {
         console.log(`- ${node.meta.name}: dependency updated`)
       } else {
-        console.log(`- ${node.meta.name}: ${cyan(node.meta.version)} => ${green(node.version)}`)
+        console.log(`- ${node.meta.name}: ${kleur.cyan(node.meta.version)} => ${kleur.green(node.version)}`)
       }
       return node.save(this.project.indent)
     }))
@@ -146,7 +148,7 @@ export default function apply(ctx: Context) {
       for (const type of bumpTypes) {
         if (type in ctx.yakumo.argv) return type
       }
-    })()
+    })()!
 
     if (flag === 'version') {
       // ensure valid version

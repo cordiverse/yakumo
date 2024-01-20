@@ -1,7 +1,7 @@
-import { Context, DependencyType, PackageJson, spawnAsync } from '..'
-import { cyan, green, red, yellow } from 'kleur'
+import { Context, DependencyType, PackageJson, spawnAsync } from '../index.js'
+import kleur from 'kleur'
 import { gt } from 'semver'
-import { latest } from '../utils'
+import { latest } from '../utils.js'
 import pMap from 'p-map'
 import ora from 'ora'
 
@@ -9,7 +9,7 @@ export interface Config {
   concurrency?: number
 }
 
-declare module '..' {
+declare module '../index.js' {
   interface PackageJson {
     $dirty?: boolean
   }
@@ -17,7 +17,7 @@ declare module '..' {
 
 export default function apply(ctx: Context, config: Config = {}) {
   ctx.register('upgrade', async () => {
-    const paths = ctx.yakumo.locate(ctx.yakumo.argv._)
+    const paths = ctx.yakumo.locate(ctx.yakumo.argv._, { includeRoot: true })
     const { manager } = ctx.yakumo
     const { concurrency = 10 } = config || {}
     const deps: Record<string, Record<string, Partial<Record<DependencyType, string[]>>>> = {}
@@ -47,11 +47,11 @@ export default function apply(ctx: Context, config: Config = {}) {
       try {
         if (!gt(newVersion, oldVersion)) return
       } catch (error) {
-        output.push(`- ${red(dep)}: skipped`)
+        output.push(`- ${kleur.red(dep)}: skipped`)
         return
       }
       const newRange = oldRange[0] + newVersion
-      output.push(`- ${yellow(dep)}: ${cyan(oldVersion)} -> ${green(newVersion)}${newVersion === lastestVersion ? '' : ` (latest: ${lastestVersion})`}`)
+      output.push(`- ${kleur.yellow(dep)}: ${kleur.cyan(oldVersion)} -> ${kleur.green(newVersion)}${newVersion === lastestVersion ? '' : ` (latest: ${lastestVersion})`}`)
       for (const name in deps[request]) {
         Object.defineProperty(ctx.yakumo.workspaces[name], '$dirty', { value: true })
         for (const type in deps[request][name]) {
@@ -80,8 +80,8 @@ export default function apply(ctx: Context, config: Config = {}) {
       for (const type of ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies'] as const) {
         for (const key in meta[type] || {}) {
           // skip workspaces and symlinks
-          const value = meta[type][key]
-          const prefix = /^(npm:.+@)?/.exec(value)[0]
+          const value = meta[type]![key]
+          const prefix = /^(npm:.+@)?/.exec(value)![0]
           const range = value.slice(prefix.length)
           if (ctx.yakumo.workspaces[key] || !'^~'.includes(range[0])) continue
           const request = (prefix ? prefix.slice(4, -1) : key) + ':' + range

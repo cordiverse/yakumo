@@ -29,7 +29,7 @@ export function spawnAsync(args: string[], options: spawn.Options = {}) {
   })
 }
 
-export const manager = which()
+export const manager = which()!
 
 export async function install() {
   const agent = manager?.name || 'npm'

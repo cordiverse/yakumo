@@ -35,6 +35,8 @@ async function bundleNodes(nodes: Node[]) {
   }
 }
 
+export const inject = ['yakumo']
+
 export function apply(ctx: Context) {
   ctx.register('tsc', async () => {
     const { argv } = ctx.yakumo
@@ -81,7 +83,6 @@ export function apply(ctx: Context) {
         nodes[name].prev.push(dep)
         nodes[dep].next.add(name)
       }
-      delete nodes[name].meta
     }
 
     // Step 3: generate bundle workflow

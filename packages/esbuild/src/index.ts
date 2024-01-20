@@ -1,6 +1,6 @@
 import { build, BuildFailure, BuildOptions, Message, Plugin } from 'esbuild'
 import { dirname, extname, isAbsolute, join, relative, resolve } from 'path'
-import { cyan, red, yellow } from 'kleur'
+import kleur from 'kleur'
 import Yakumo, { Context, PackageJson } from 'yakumo'
 import { load } from 'tsconfig-utils'
 import { Dict } from 'cosmokit'
@@ -26,20 +26,20 @@ function display(prefix: string) {
     if (ignored.some(message => text.includes(message))) return
     if (!location) return console.log(prefix, text)
     const { file, line, column } = location
-    console.log(cyan(`${file}:${line}:${column}:`), prefix, text)
+    console.log(kleur.cyan(`${file}:${line}:${column}:`), prefix, text)
   }
 }
 
-const displayError = display(red('error:'))
-const displayWarning = display(yellow('warning:'))
+const displayError = display(kleur.red('error:'))
+const displayWarning = display(kleur.yellow('warning:'))
 
 let code = 0
 
 function bundle(options: BuildOptions) {
   // show entry list
-  for (const [key, value] of Object.entries(options.entryPoints)) {
+  for (const [key, value] of Object.entries(options.entryPoints!)) {
     const source = relative(process.cwd(), value)
-    const target = relative(process.cwd(), resolve(options.outdir, key + options.outExtension['.js']))
+    const target = relative(process.cwd(), resolve(options.outdir!, key + options.outExtension!['.js']))
     console.log('esbuild:', source, '->', target)
   }
 
@@ -61,7 +61,7 @@ async function compile(relpath: string, meta: PackageJson, yakumo: Yakumo) {
     name: 'external library',
     setup(build) {
       const { entryPoints, platform, format } = build.initialOptions
-      const currentEntry = Object.values(entryPoints)[0]
+      const currentEntry = Object.values(entryPoints!)[0]
       build.onResolve({ filter }, (args) => {
         if (isAbsolute(args.path)) return null
         return { external: true }
@@ -76,9 +76,9 @@ async function compile(relpath: string, meta: PackageJson, yakumo: Yakumo) {
         if (currentEntry === path || !exports[path]) return null
         if (format === 'cjs') return { external: true }
         // native ESM import should preserve extensions
-        const outFile = exports[path][platform] || exports[path].default
+        const outFile = exports[path][platform!] || exports[path].default
         if (!outFile) return null
-        const outDir = dirname(exports[currentEntry][platform])
+        const outDir = dirname(exports[currentEntry][platform!])
         let relpath = relative(outDir, outFile)
         if (!relpath.startsWith('.')) relpath = './' + relpath
         return { path: relpath, external: true }
@@ -90,7 +90,7 @@ async function compile(relpath: string, meta: PackageJson, yakumo: Yakumo) {
   const config = await load(base)
   const { rootDir, outFile, noEmit, emitDeclarationOnly, sourceMap } = config.compilerOptions
   if (!noEmit && !emitDeclarationOnly) return []
-  const outDir = config.compilerOptions.outDir ?? dirname(outFile)
+  const outDir = config.compilerOptions.outDir ?? dirname(outFile!)
 
   const nodeOptions: BuildOptions = {
     platform: 'node',
@@ -105,12 +105,12 @@ async function compile(relpath: string, meta: PackageJson, yakumo: Yakumo) {
   }
 
   const outdir = join(base, outDir)
-  const outbase = join(base, rootDir)
+  const outbase = join(base, rootDir!)
   const matrix: BuildOptions[] = []
   const exports: Dict<Dict<string>> = Object.create(null)
   const outFiles = new Set<string>()
 
-  function addExport(pattern: string, options: BuildOptions) {
+  function addExport(pattern: string | undefined, options: BuildOptions) {
     if (!pattern) return
     if (pattern.startsWith('./')) pattern = pattern.slice(2)
     if (!pattern.startsWith(outDir + '/')) {
@@ -119,7 +119,7 @@ async function compile(relpath: string, meta: PackageJson, yakumo: Yakumo) {
       const targets = globby.sync(pattern, { cwd: base })
       for (const target of targets) {
         // ignore exports in `rootDir`
-        if (!relative(rootDir, target).startsWith('../')) continue
+        if (!relative(rootDir!, target).startsWith('../')) continue
         const filename = join(base, target)
         exports[filename] = { default: filename }
       }
@@ -132,14 +132,14 @@ async function compile(relpath: string, meta: PackageJson, yakumo: Yakumo) {
     pattern = pattern.slice(outDir.length + 1, -outExt.length).replace('*', '**') + '.{ts,tsx}'
     const targets = globby.sync(pattern, { cwd: outbase })
     for (const target of targets) {
-      const srcFile = join(base, rootDir, target)
+      const srcFile = join(base, rootDir!, target)
       const srcExt = extname(target)
       const entry = target.slice(0, -srcExt.length)
       const outFile = join(outdir, entry + outExt)
       if (outFiles.has(outFile)) return
 
       outFiles.add(outFile)
-      ;(exports[srcFile] ||= {})[options.platform] = outFile
+      ;(exports[srcFile] ||= {})[options.platform!] = outFile
       matrix.push({
         outdir,
         outbase,
@@ -160,7 +160,7 @@ async function compile(relpath: string, meta: PackageJson, yakumo: Yakumo) {
   }
 
   // TODO: support null targets
-  function addConditionalExport(pattern: PackageJson.Exports, options: BuildOptions) {
+  function addConditionalExport(pattern: PackageJson.Exports | undefined, options: BuildOptions) {
     if (typeof pattern === 'string') {
       return addExport(pattern, options)
     }
@@ -196,7 +196,7 @@ async function compile(relpath: string, meta: PackageJson, yakumo: Yakumo) {
 const yamlPlugin = (options: yaml.LoadOptions = {}): Plugin => ({
   name: 'yaml',
   setup(build) {
-    build.initialOptions.resolveExtensions.push('.yml', '.yaml')
+    build.initialOptions.resolveExtensions!.push('.yml', '.yaml')
 
     build.onLoad({ filter: /\.ya?ml$/ }, async ({ path }) => {
       const source = await fs.readFile(path, 'utf8')
@@ -208,6 +208,8 @@ const yamlPlugin = (options: yaml.LoadOptions = {}): Plugin => ({
   },
 })
 
+export const inject = ['yakumo']
+
 export function apply(ctx: Context) {
   ctx.register('esbuild', async () => {
     const paths = ctx.yakumo.locate(ctx.yakumo.argv._)
@@ -215,7 +217,7 @@ export function apply(ctx: Context) {
       const meta = ctx.yakumo.workspaces[path]
       const matrix = await compile(path, meta, ctx.yakumo)
       await Promise.all(matrix.map(async (options) => {
-        options.plugins.push(yamlPlugin())
+        options.plugins!.push(yamlPlugin())
         await ctx.parallel('esbuild/before', options, meta)
         await bundle(options)
         await ctx.parallel('esbuild/after', options, meta)
