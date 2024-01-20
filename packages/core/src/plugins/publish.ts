@@ -108,6 +108,10 @@ export default function apply(ctx: Context) {
         if (argv.otp) args.push('--otp', argv.otp)
         const code = await publish(ctx.yakumo.manager, path, meta, args, argv)
         assert(!code)
+        // sync npm mirror
+        fetch('https://registry-direct.npmmirror.com/' + meta.name + '/sync?sync_upstream=true', {
+          method: 'PUT',
+        }).catch(() => {})
         await ctx.parallel('publish/after', path, meta)
       } catch (e) {
         failed++
