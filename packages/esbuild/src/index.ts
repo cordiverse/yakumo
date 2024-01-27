@@ -126,6 +126,13 @@ async function compile(relpath: string, meta: PackageJson, yakumo: Yakumo) {
       return
     }
 
+    // transform options by extension
+    if (pattern.endsWith('.cjs')) {
+      options = nodeOptions
+    } else if (pattern.endsWith('.mjs')) {
+      options = browserOptions
+    }
+
     // https://nodejs.org/api/packages.html#subpath-patterns
     // `*` maps expose nested subpaths as it is a string replacement syntax only
     const outExt = extname(pattern)
@@ -167,26 +174,27 @@ async function compile(relpath: string, meta: PackageJson, yakumo: Yakumo) {
 
     for (const key in pattern) {
       if (key === 'node' || key === 'require' || key.startsWith('.')) {
-        addConditionalExport(pattern[key], nodeOptions)
+        addConditionalExport(pattern[key], options)
       } else {
         addConditionalExport(pattern[key], browserOptions)
       }
     }
   }
 
-  addExport(meta.main, meta.type === 'module' ? browserOptions : nodeOptions)
+  const defaultOptions = meta.type === 'module' ? browserOptions : nodeOptions
+  addExport(meta.main, defaultOptions)
   addExport(meta.module, browserOptions)
-  addConditionalExport(meta.exports, nodeOptions)
+  addConditionalExport(meta.exports, defaultOptions)
 
   if (!meta.exports) {
     addExport('package.json', nodeOptions)
   }
 
   if (typeof meta.bin === 'string') {
-    addExport(meta.bin, nodeOptions)
+    addExport(meta.bin, defaultOptions)
   } else if (meta.bin) {
     for (const key in meta.bin) {
-      addExport(meta.bin[key], nodeOptions)
+      addExport(meta.bin[key], defaultOptions)
     }
   }
 
