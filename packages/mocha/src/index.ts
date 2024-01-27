@@ -1,10 +1,11 @@
 import { Context } from 'yakumo'
 import { spawn } from 'child_process'
 // @ts-ignore
-import { loadOptions } from 'mocha/lib/cli/options'
+import { loadOptions } from 'mocha/lib/cli/options.js'
 // @ts-ignore
-import { isNodeFlag } from 'mocha/lib/cli/node-flags'
+import { isNodeFlag } from 'mocha/lib/cli/node-flags.js'
 import unparse from 'yargs-unparser'
+import { createRequire } from 'module'
 
 const trimV8Option = value => value !== 'v8-options' && /^v8-/.test(value) ? value.slice(3) : value
 
@@ -37,7 +38,7 @@ export function apply(ctx: Context) {
 
     const child = spawn(process.execPath, [
       ...unparse(nodeArgs),
-      require.resolve('mocha/lib/cli/cli'),
+      createRequire(import.meta.url).resolve('mocha/lib/cli/cli.js'),
       ...unparse(mochaArgs),
     ], {
       stdio: 'inherit',
