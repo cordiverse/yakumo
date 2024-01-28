@@ -1,4 +1,4 @@
-import { promises as fsp } from 'fs'
+import * as fs from 'node:fs/promises'
 import { join } from 'path'
 import { Context, cwd, PackageJson } from 'yakumo'
 import { compile, load } from 'tsconfig-utils'
@@ -23,7 +23,7 @@ interface Node {
 
 async function prepareBuild(nodes: Node[]) {
   if (!nodes.length) return
-  await fsp.writeFile(cwd + '/tsconfig.temp.json', JSON.stringify({
+  await fs.writeFile(cwd + '/tsconfig.temp.json', JSON.stringify({
     files: [],
     references: nodes.map(node => ({ path: '.' + node.path })),
   }, null, 2))
@@ -47,12 +47,12 @@ export function apply(ctx: Context) {
       const tasks = paths.map(async (path) => {
         const fullpath = join(cwd, path)
         const tsconfig = await load(fullpath)
-        await Promise.all([
-          fsp.rm(join(cwd, path, tsconfig?.compilerOptions?.outDir || 'lib'), { recursive: true }),
-          fsp.rm(join(fullpath, 'tsconfig.tsbuildinfo')),
+        await Promise.allSettled([
+          fs.rm(join(fullpath, tsconfig?.compilerOptions?.outDir || 'lib'), { recursive: true }),
+          fs.rm(join(fullpath, 'tsconfig.tsbuildinfo')),
         ])
       })
-      tasks.push(fsp.rm(join(cwd, 'tsconfig.temp.json')))
+      tasks.push(fs.rm(join(cwd, 'tsconfig.temp.json')))
       await Promise.allSettled(tasks)
       return
     }
@@ -64,8 +64,8 @@ export function apply(ctx: Context) {
       if (!meta.main && !meta.exports) continue
       const fullpath = join(cwd, path)
       try {
-        const config = await load(fullpath)
-        const bundle = !!config.compilerOptions?.outFile
+        const tsconfig = await load(fullpath)
+        const bundle = !!tsconfig.compilerOptions?.outFile
         nodes[meta.name] = { bundle, path, meta, prev: [], next: new Set() }
       } catch {}
     }
@@ -124,11 +124,12 @@ export function apply(ctx: Context) {
         bundleNodes(bundleTargets),
       ])
       if (buildTargets.length) {
-        const code = await compile(['-b', 'tsconfig.temp.json'])
+        const code = await compile(['-b', 'tsconfig.temp.json', '--listEmittedFiles'])
         if (code) process.exit(code)
       }
       await Promise.all(tasks)
     }
+    await fs.rm(join(cwd, 'tsconfig.temp.json'))
   }, {
     boolean: ['clean'],
   })
