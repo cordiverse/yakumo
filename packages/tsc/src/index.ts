@@ -129,7 +129,7 @@ export function apply(ctx: Context) {
       }
       await Promise.all(tasks)
     }
-    await fs.rm(join(cwd, 'tsconfig.temp.json'))
+    await fs.rm(join(cwd, 'tsconfig.temp.json')).catch(() => {})
   }, {
     boolean: ['clean'],
   })
