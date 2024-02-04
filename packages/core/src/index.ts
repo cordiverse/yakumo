@@ -68,13 +68,15 @@ export namespace PackageJson {
 // @ts-ignore
 export interface Events<C extends Context = Context> extends cordis.Events<C> {}
 
+// @ts-ignore
 export interface Context {
   [Context.events]: Events
   yakumo: Yakumo
   register(name: string, callback: () => void, options?: Options): void
 }
 
-export class Context extends cordis.Context {
+// @ts-ignore
+export class Context<T = any> extends cordis.Context<T> {
   constructor(config: any) {
     super(config)
     this.plugin(Yakumo)

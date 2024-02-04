@@ -29,10 +29,10 @@
   ],
   "peerDependencies": {
     "esbuild": "*",
-    "yakumo": "^1.0.0-beta.2"
+    "yakumo": "^1.0.0-beta.6"
   },
   "dependencies": {
-    "tsconfig-utils": "^4.0.4",
+    "tsconfig-utils": "^4.0.5",
     "yaml": "^2.3.4"
   }
 }
