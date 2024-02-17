@@ -41,7 +41,7 @@ export default function apply(ctx: Context, config: Config = {}) {
       const oldVersion = oldRange.slice(1)
       const [newVersion, lastestVersion] = await Promise.all([
         latest(dep, { version: oldRange }),
-        latest(dep),
+        latest(dep, { version: ctx.yakumo.argv.next ? '' : 'latest' }),
       ])
       updateProgress()
       try {
@@ -89,5 +89,7 @@ export default function apply(ctx: Context, config: Config = {}) {
         }
       }
     }
+  }, {
+    boolean: ['next'],
   })
 }

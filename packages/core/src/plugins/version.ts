@@ -4,7 +4,7 @@ import { gt, SemVer } from 'semver'
 import kleur from 'kleur'
 import Yakumo, { confirm, Context, cwd, PackageJson } from '../index.js'
 
-const bumpTypes = ['major', 'minor', 'patch', 'prerelease', 'version', 'reset'] as const
+const bumpTypes = ['major', 'minor', 'patch', 'version', 'reset'] as const
 type BumpType = typeof bumpTypes[number]
 
 class Package {
@@ -18,11 +18,27 @@ class Package {
     this.version = this.meta.version
   }
 
-  bump(flag: BumpType, options: any) {
+  bump(flag: BumpType, options: any, prerelease: boolean) {
     if (this.meta.private) return
     let version = new SemVer(this.meta.version)
     const reset = flag === 'reset'
-    if (!flag || reset) {
+    if (prerelease) {
+      if (version.prerelease.length) {
+        version.prerelease = [{
+          alpha: 'beta',
+          beta: 'rc',
+        }[version.prerelease[0]]!, 0]
+      } else {
+        flag ??= 'major'
+        if (flag === 'major') {
+          version = new SemVer(`${version.major + 1}.0.0-alpha.0`)
+        } else if (flag === 'minor') {
+          version = new SemVer(`${version.major}.${version.minor + 1}.0-alpha.0`)
+        } else if (flag === 'patch') {
+          version = new SemVer(`${version.major}.${version.minor}.${version.patch + 1}-alpha.0`)
+        }
+      }
+    } else if (!flag || reset) {
       if (version.prerelease.length) {
         const prerelease = version.prerelease.slice() as [string, number]
         prerelease[1] += reset ? -1 : 1
@@ -38,15 +54,6 @@ class Package {
       this.dirty = true
       this.version = options.version
       return options.version
-    } else if (flag === 'prerelease') {
-      if (version.prerelease.length) {
-        version.prerelease = [{
-          alpha: 'beta',
-          beta: 'rc',
-        }[version.prerelease[0]]!, 0]
-      } else {
-        version = new SemVer(`${version.major + 1}.0.0-alpha.0`)
-      }
     } else {
       if (version.prerelease.length) {
         version.prerelease = []
@@ -88,8 +95,8 @@ class Graph {
     return results
   }
 
-  bump(node: Package, flag: BumpType) {
-    const version = node.bump(flag, this.project.argv)
+  bump(node: Package, flag: BumpType, isPre: boolean) {
+    const version = node.bump(flag, this.project.argv, isPre)
     if (!version) return
     const dependents = new Set<Package>()
     this.each((target) => {
@@ -121,7 +128,7 @@ class Graph {
       }
     })
     if (!this.project.argv.recursive) return
-    dependents.forEach(dep => this.bump(dep, flag))
+    dependents.forEach(dep => this.bump(dep, flag, isPre))
   }
 
   async save() {
@@ -158,7 +165,7 @@ export default function apply(ctx: Context) {
     const graph = new Graph(ctx.yakumo)
     const paths = ctx.yakumo.locate(ctx.yakumo.argv._)
     for (const path of paths) {
-      graph.bump(graph.nodes[path], flag)
+      graph.bump(graph.nodes[path], flag, ctx.yakumo.argv.prerelease)
     }
 
     await graph.save()

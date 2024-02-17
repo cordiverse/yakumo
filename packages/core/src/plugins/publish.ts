@@ -22,7 +22,7 @@ function getVersion(name: string, isNext = false) {
   if (isNext) {
     return latest(name, { version: 'next' }).catch(() => getVersion(name))
   } else {
-    return latest(name).catch(() => '0.0.1')
+    return latest(name, { version: 'latest' }).catch(() => '0.0.1')
   }
 }
 
