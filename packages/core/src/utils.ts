@@ -41,11 +41,11 @@ let registryTask: Promise<string>
 
 export namespace latest {
   export interface Options {
-    version?: string
+    version: string
   }
 }
 
-export async function latest(name: string, options: latest.Options = {}) {
+export async function latest(name: string, options: latest.Options) {
   const registry = await (registryTask ||= getRegistry())
   const packageUrl = new URL(encodeURIComponent(name).replace(/^%40/, '@'), registry)
   const response = await fetch(packageUrl, {
@@ -53,7 +53,7 @@ export async function latest(name: string, options: latest.Options = {}) {
       'Accept': 'application/vnd.npm.install-v1+json; q=1.0, application/json; q=0.8, */*',
     },
   })
-  const { version = 'latest' } = options
+  const { version } = options
   const data = await response.json()
   if (data['dist-tags'][version]) {
     return data['dist-tags'][version]
@@ -61,6 +61,6 @@ export async function latest(name: string, options: latest.Options = {}) {
     return version
   } else {
     const versions = Object.keys(data.versions)
-    return semver.maxSatisfying(versions, version)
+    return semver.maxSatisfying(versions, version, { includePrerelease: true })
   }
 }

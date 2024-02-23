@@ -2,7 +2,7 @@ import { writeFile } from 'fs/promises'
 import { readFileSync } from 'fs'
 import { gt, SemVer } from 'semver'
 import kleur from 'kleur'
-import Yakumo, { confirm, Context, cwd, PackageJson } from '../index.js'
+import Yakumo, { Arguments, confirm, Context, cwd, PackageJson } from '../index.js'
 
 const bumpTypes = ['major', 'minor', 'patch', 'version', 'reset'] as const
 type BumpType = typeof bumpTypes[number]
@@ -18,11 +18,13 @@ class Package {
     this.version = this.meta.version
   }
 
-  bump(flag: BumpType, options: any, prerelease: boolean) {
+  bump(flag: BumpType, options: any, args: Arguments) {
     if (this.meta.private) return
     let version = new SemVer(this.meta.version)
     const reset = flag === 'reset'
-    if (prerelease) {
+    if (args.stable) {
+      version.prerelease = []
+    } else if (args.prerelease) {
       if (version.prerelease.length) {
         version.prerelease = [{
           alpha: 'beta',
@@ -95,8 +97,8 @@ class Graph {
     return results
   }
 
-  bump(node: Package, flag: BumpType, isPre: boolean) {
-    const version = node.bump(flag, this.project.argv, isPre)
+  bump(node: Package, flag: BumpType, args: Arguments) {
+    const version = node.bump(flag, this.project.argv, args)
     if (!version) return
     const dependents = new Set<Package>()
     this.each((target) => {
@@ -128,7 +130,7 @@ class Graph {
       }
     })
     if (!this.project.argv.recursive) return
-    dependents.forEach(dep => this.bump(dep, flag, isPre))
+    dependents.forEach(dep => this.bump(dep, flag, args))
   }
 
   async save() {
@@ -165,7 +167,7 @@ export default function apply(ctx: Context) {
     const graph = new Graph(ctx.yakumo)
     const paths = ctx.yakumo.locate(ctx.yakumo.argv._)
     for (const path of paths) {
-      graph.bump(graph.nodes[path], flag, ctx.yakumo.argv.prerelease)
+      graph.bump(graph.nodes[path], flag, ctx.yakumo.argv)
     }
 
     await graph.save()
@@ -176,9 +178,10 @@ export default function apply(ctx: Context) {
       patch: ['3'],
       reset: ['0'],
       prerelease: ['p'],
+      stable: ['P'],
       version: ['v'],
       recursive: ['r'],
     },
-    boolean: ['major', 'minor', 'patch', 'reset', 'prerelease', 'recursive'],
+    boolean: ['major', 'minor', 'patch', 'reset', 'prerelease', 'stable', 'recursive'],
   })
 }
