@@ -26,10 +26,15 @@ export const meta: PackageJson = JSON.parse(content)
 
 export interface PackageConfig {}
 
+export interface WorkspaceOptions {
+  ignores: (string | RegExp)[]
+}
+
 export interface ProjectConfig {
   alias?: Dict<string | string[]>
   commands?: Dict
   pipeline?: Dict<string[]>
+  workspace?: WorkspaceOptions
 }
 
 export interface Manager {
@@ -134,6 +139,8 @@ export default class Yakumo {
     })
     folders.unshift('')
 
+    const ignores = this.config.workspace?.ignores ?? []
+
     this.workspaces = Object.fromEntries((await Promise.all(folders.map(async (path) => {
       if (path) path = '/' + path
       try {
@@ -141,7 +148,13 @@ export default class Yakumo {
         return [path, JSON.parse(content)] as [string, PackageJson]
       } catch {}
       return null! // workaround silly strictNullChecks
-    }))).filter(Boolean))
+    }))).filter(Boolean).filter(([path]) => !ignores.some(ignore => {
+      if (typeof ignore === 'string') {
+        return path === ignore
+      } else {
+        return ignore.test(path)
+      }
+    })))
   }
 
   locate(name: string | string[], options: LocateOptions = {}): string[] {
