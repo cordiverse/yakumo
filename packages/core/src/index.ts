@@ -26,12 +26,6 @@ export const meta: PackageJson = JSON.parse(content)
 
 export interface PackageConfig {}
 
-export interface ProjectConfig {
-  alias?: Dict<string | string[]>
-  commands?: Dict
-  pipeline?: Dict<string[]>
-}
-
 export interface Manager {
   name: string
   version: string
@@ -67,8 +61,13 @@ export namespace PackageJson {
 
 export interface Events<C extends Context = Context> extends cordis.Events<C> {}
 
+export interface Intercept<C extends Context = Context> extends cordis.Intercept<C> {
+  yakumo: Yakumo.Intercept
+}
+
 export interface Context {
   [Context.events]: Events<this>
+  [Context.intercept]: Intercept<this>
   yakumo: Yakumo
   register(name: string, callback: () => void, options?: Options): void
 }
@@ -85,6 +84,18 @@ export interface LocateOptions {
   filter?(meta: PackageJson, path: string): boolean
 }
 
+export namespace Yakumo {
+  export interface Intercept {
+    alias?: Dict<string | string[]>
+    exclude?: string[]
+  }
+
+  export interface Config extends Intercept {
+    commands?: Dict
+    pipeline?: Dict<string[]>
+  }
+}
+
 export default class Yakumo {
   cwd: string
   args = process.argv.slice(2)
@@ -94,7 +105,7 @@ export default class Yakumo {
   indent = detect(content).indent
   commands: Dict = {}
 
-  constructor(ctx: Context, public config: ProjectConfig) {
+  constructor(ctx: Context, public config: Yakumo.Config) {
     ctx.provide('yakumo', undefined, true)
     ctx.mixin('yakumo', ['register'])
     ctx.yakumo = this
@@ -144,8 +155,36 @@ export default class Yakumo {
     }))).filter(Boolean))
   }
 
+  resolveIntercept(): Yakumo.Intercept {
+    const caller: Context = this[Context.current]
+    let result = this.config
+    let intercept = caller[Context.intercept]
+    while (intercept) {
+      result = {
+        ...result,
+        ...intercept.yakumo,
+        alias: {
+          ...result.alias,
+          ...intercept.yakumo?.alias,
+        },
+        exclude: [
+          ...result.exclude || [],
+          ...intercept.yakumo?.exclude || [],
+        ],
+      }
+      intercept = Object.getPrototypeOf(intercept)
+    }
+    return result
+  }
+
   locate(name: string | string[], options: LocateOptions = {}): string[] {
-    const filter = options.filter || ((meta) => options.includeRoot || !meta.workspaces)
+    const { alias, exclude } = this.resolveIntercept()
+    const defaultFilter = options.filter || ((meta) => options.includeRoot || !meta.workspaces)
+    const filter = (meta: PackageJson, path: string) => {
+      return defaultFilter(meta, path) && !exclude?.some((pattern) => {
+        return new RegExp('^/' + pattern.replace(/\*/g, '[^/]+') + '$').test(path)
+      })
+    }
     if (Array.isArray(name)) {
       if (!name.length) {
         return Object.keys(this.workspaces).filter((folder) => {
@@ -156,8 +195,8 @@ export default class Yakumo {
       }
     }
 
-    if (this.config.alias?.[name]) {
-      return makeArray(this.config.alias[name]).map((path) => {
+    if (alias?.[name]) {
+      return makeArray(alias[name]).map((path) => {
         if (!this.workspaces[path]) {
           throw new Error(`cannot find workspace ${path} resolved by ${name}`)
         }
