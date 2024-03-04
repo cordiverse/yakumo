@@ -4,7 +4,9 @@ import parse from 'yargs-parser'
 import unparse from 'yargs-unparser'
 import globby from 'globby'
 
-export default function apply(ctx: Context) {
+export const inject = ['yakumo']
+
+export function apply(ctx: Context) {
   ctx.register('test', async () => {
     function getFiles(names: string[]) {
       if (!names.length) return ['**/tests/*.spec.ts']

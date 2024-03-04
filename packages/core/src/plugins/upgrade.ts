@@ -15,7 +15,9 @@ declare module '../index.js' {
   }
 }
 
-export default function apply(ctx: Context, config: Config = {}) {
+export const inject = ['yakumo']
+
+export function apply(ctx: Context, config: Config = {}) {
   ctx.register('upgrade', async () => {
     const paths = ctx.yakumo.locate(ctx.yakumo.argv._, { includeRoot: true })
     const { manager } = ctx.yakumo

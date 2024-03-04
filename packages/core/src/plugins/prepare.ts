@@ -1,7 +1,9 @@
 import { Context } from '../index.js'
 import picomatch from 'picomatch'
 
-export default function apply(ctx: Context) {
+export const inject = ['yakumo']
+
+export function apply(ctx: Context) {
   ctx.register('prepare', async () => {
     const { workspaces } = ctx.yakumo.workspaces['']
     const current = new Set(workspaces)

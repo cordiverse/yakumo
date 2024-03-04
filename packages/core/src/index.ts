@@ -6,18 +6,7 @@ import { manager, spawnAsync } from './utils.js'
 import kleur from 'kleur'
 import { promises as fs, readFileSync } from 'node:fs'
 import { Dict, makeArray } from 'cosmokit'
-import list from './plugins/list.js'
-import prepare from './plugins/prepare.js'
-import publish from './plugins/publish.js'
-import test from './plugins/test.js'
-import upgrade from './plugins/upgrade.js'
-import version from './plugins/version.js'
 
-export * from './plugins/prepare.js'
-export * from './plugins/publish.js'
-export * from './plugins/test.js'
-export * from './plugins/upgrade.js'
-export * from './plugins/version.js'
 export * from './utils.js'
 
 export const cwd = process.cwd()
@@ -73,8 +62,9 @@ export interface Context {
 }
 
 export class Context extends cordis.Context {
-  constructor(config: any) {
+  constructor(config?: any) {
     super(config)
+    this.provide('yakumo', undefined, true)
     this.plugin(Yakumo, config)
   }
 }
@@ -96,7 +86,16 @@ export namespace Yakumo {
   }
 }
 
-export default class Yakumo {
+const builtin = [
+  'list',
+  'prepare',
+  'publish',
+  'test',
+  'upgrade',
+  'version',
+]
+
+export default class Yakumo extends cordis.Service<Yakumo.Config, Context> {
   cwd: string
   args = process.argv.slice(2)
   argv!: Arguments
@@ -105,19 +104,11 @@ export default class Yakumo {
   indent = detect(content).indent
   commands: Dict = {}
 
-  constructor(ctx: Context, public config: Yakumo.Config) {
-    ctx.provide('yakumo', undefined, true)
+  constructor(public ctx: Context, public config: Yakumo.Config) {
+    super(ctx, 'yakumo', true)
     ctx.mixin('yakumo', ['register'])
-    ctx.yakumo = this
     this.cwd = cwd
     this.manager = manager
-
-    ctx.plugin(list)
-    ctx.plugin(prepare)
-    ctx.plugin(publish)
-    ctx.plugin(test)
-    ctx.plugin(upgrade)
-    ctx.plugin(version)
 
     for (const name in config.pipeline || {}) {
       this.register(name, async () => {
@@ -128,8 +119,6 @@ export default class Yakumo {
         }
       })
     }
-
-    ctx.on('ready', () => this.start())
   }
 
   register(name: string, callback: () => void, options: Options = {}) {
@@ -156,7 +145,7 @@ export default class Yakumo {
   }
 
   resolveIntercept(): Yakumo.Intercept {
-    const caller: Context = this[Context.current]
+    const caller = this[Context.current]
     let result = this.config
     let intercept = caller[Context.intercept]
     while (intercept) {
@@ -224,7 +213,16 @@ export default class Yakumo {
   }
 
   async execute(name: string, ...args: string[]) {
+    await this.ctx.events.flush()
     if (!this.commands[name]) {
+      if (builtin.includes(name)) {
+        this.ctx.loader.config.push({
+          name: 'yakumo/' + name,
+        } as any)
+        await this.ctx.loader.writeConfig()
+        await this.ctx.loader.start()
+        return this.execute(name, ...args)
+      }
       console.error(kleur.red(`unknown command: ${name}`))
       process.exit(1)
     }
@@ -241,7 +239,7 @@ export default class Yakumo {
       console.log('yakumo')
       process.exit(0)
     }
-    await this.execute(this.args[0])
+    this.execute(this.args[0])
   }
 
   async install() {

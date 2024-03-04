@@ -8,7 +8,9 @@ interface Node {
   tree: Dict<Node>
 }
 
-export default function apply(ctx: Context) {
+export const inject = ['yakumo']
+
+export function apply(ctx: Context) {
   function createNode(path: string): Node {
     return { name: ctx.yakumo.workspaces[path].name, path, children: [], tree: {} }
   }

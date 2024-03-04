@@ -53,7 +53,9 @@ async function serial<S, T>(list: S[], fn: (item: S) => Promise<T>) {
   for (const item of list) await fn(item)
 }
 
-export default function apply(ctx: Context) {
+export const inject = ['yakumo']
+
+export function apply(ctx: Context) {
   ctx.register('publish', async () => {
     const { argv } = ctx.yakumo
     const spinner = ora()
