@@ -11,5 +11,11 @@
       "@yakumojs/*": ["packages/*/src"],
     },
   },
+  "references": [
+    { "path": "./packages/core" },
+    { "path": "./packages/esbuild" },
+    { "path": "./packages/mocha" },
+    { "path": "./packages/tsc" },
+  ],
   "files": [],
 }

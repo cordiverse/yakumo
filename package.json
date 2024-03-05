@@ -11,8 +11,8 @@
   ],
   "license": "MIT",
   "scripts": {
-    "build": "tsc -b",
     "yakumo": "node --import tsx packages/core/src/cli",
+    "build": "yarn yakumo build",
     "bump": "yarn yakumo version",
     "dep": "yarn yakumo upgrade",
     "pub": "yarn yakumo publish",

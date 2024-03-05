@@ -29,7 +29,7 @@ jobs:
       - name: Install
         run: yarn --no-immutable
       - name: Build
-        run: yarn build
+        run: yarn tsc -b
 
   test:
     runs-on: ubuntu-latest
@@ -48,6 +48,9 @@ jobs:
           node-version: ${{ matrix.node-version }}
       - name: Install
         run: yarn --no-immutable
+      # FIXME tsx not working
+      - name: Build
+        run: yarn tsc -b
       - name: Unit Test
         run: yarn test:json
       - name: Report Coverage

@@ -16,6 +16,7 @@
     "./test": "./lib/plugins/test.js",
     "./upgrade": "./lib/plugins/upgrade.js",
     "./version": "./lib/plugins/version.js",
+    "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
   "engines": {
@@ -48,7 +49,7 @@
     "@types/yargs-parser": "^21.0.3"
   },
   "dependencies": {
-    "cordis": "^3.13.2",
+    "cordis": "^3.13.3",
     "cosmokit": "^1.5.2",
     "detect-indent": "^6.1.0",
     "execa": "^5.1.1",
