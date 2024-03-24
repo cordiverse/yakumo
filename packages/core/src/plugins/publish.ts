@@ -2,7 +2,7 @@ import { Context, cwd, exit, Manager, PackageJson, spawnAsync } from '../index.j
 import { gt, prerelease } from 'semver'
 import { Awaitable } from 'cosmokit'
 import { join } from 'path'
-import { latest } from '../utils.js'
+import { fetchRemote, selectVersion } from '../utils.js'
 import ora from 'ora'
 import prompts from 'prompts'
 import assert from 'assert'
@@ -18,11 +18,13 @@ declare module '../index.js' {
   }
 }
 
-function getVersion(name: string, isNext = false) {
+async function getVersion(name: string, isNext = false) {
+  const remote = await fetchRemote(name).catch(() => null)
+  if (!remote) return '0.0.0'
   if (isNext) {
-    return latest(name, { version: 'next' }).catch(() => getVersion(name))
+    return selectVersion(remote, 'next') || selectVersion(remote, 'latest') || '0.0.0'
   } else {
-    return latest(name, { version: 'latest' }).catch(() => '0.0.1')
+    return selectVersion(remote, 'latest') || '0.0.0'
   }
 }
 

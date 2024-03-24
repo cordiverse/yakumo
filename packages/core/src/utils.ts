@@ -39,13 +39,7 @@ export async function install() {
 
 let registryTask: Promise<string>
 
-export namespace latest {
-  export interface Options {
-    version: string
-  }
-}
-
-export async function latest(name: string, options: latest.Options) {
+export async function fetchRemote(name: string) {
   const registry = await (registryTask ||= getRegistry())
   const packageUrl = new URL(encodeURIComponent(name).replace(/^%40/, '@'), registry)
   const response = await fetch(packageUrl, {
@@ -53,14 +47,17 @@ export async function latest(name: string, options: latest.Options) {
       'Accept': 'application/vnd.npm.install-v1+json; q=1.0, application/json; q=0.8, */*',
     },
   })
-  const { version } = options
-  const data = await response.json()
+  if (!response.ok) throw new Error(`Failed to fetch ${packageUrl}`)
+  return response.json()
+}
+
+export function selectVersion(data: any, version: string) {
   if (data['dist-tags'][version]) {
     return data['dist-tags'][version]
-  } else if (data.versions[version]) {
+  } else if (data.versions?.[version]) {
     return version
   } else {
     const versions = Object.keys(data.versions)
-    return semver.maxSatisfying(versions, version, { includePrerelease: true })
+    return semver.maxSatisfying(versions, version, { includePrerelease: true, loose: true })
   }
 }

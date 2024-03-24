@@ -1,7 +1,7 @@
 import { Context, DependencyType, PackageJson, spawnAsync } from '../index.js'
 import kleur from 'kleur'
 import { gt } from 'semver'
-import { latest } from '../utils.js'
+import { fetchRemote, selectVersion } from '../utils.js'
 import pMap from 'p-map'
 import ora from 'ora'
 
@@ -41,11 +41,13 @@ export function apply(ctx: Context, config: Config = {}) {
       const [dep, oldRange] = request.split(':')
       if (names.includes(dep)) return updateProgress()
       const oldVersion = oldRange.slice(1)
-      const [newVersion, lastestVersion] = await Promise.all([
-        latest(dep, { version: oldRange }),
-        latest(dep, { version: ctx.yakumo.argv.next ? '' : 'latest' }),
-      ])
+      const remote = await fetchRemote(dep).catch(() => {
+        console.log(`- ${kleur.red(dep)}: failed to fetch`)
+      })
       updateProgress()
+      if (!remote) return
+      const newVersion = selectVersion(remote, oldRange)
+      const lastestVersion = selectVersion(remote, ctx.yakumo.argv.next ? '' : 'latest')
       try {
         if (!gt(newVersion, oldVersion)) return
       } catch (error) {
@@ -53,7 +55,8 @@ export function apply(ctx: Context, config: Config = {}) {
         return
       }
       const newRange = oldRange[0] + newVersion
-      output.push(`- ${kleur.yellow(dep)}: ${kleur.cyan(oldVersion)} -> ${kleur.green(newVersion)}${newVersion === lastestVersion ? '' : ` (latest: ${lastestVersion})`}`)
+      const suffix = newVersion === lastestVersion ? '' : ` (latest: ${lastestVersion})`
+      output.push(`- ${kleur.yellow(dep)}: ${kleur.cyan(oldVersion)} -> ${kleur.green(newVersion)}${suffix}`)
       for (const name in deps[request]) {
         Object.defineProperty(ctx.yakumo.workspaces[name], '$dirty', { value: true })
         for (const type in deps[request][name]) {
