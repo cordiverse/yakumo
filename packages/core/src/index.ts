@@ -5,7 +5,7 @@ import detect from 'detect-indent'
 import { manager, spawnAsync } from './utils.js'
 import kleur from 'kleur'
 import { promises as fs, readFileSync } from 'node:fs'
-import { Dict, makeArray } from 'cosmokit'
+import { deduplicate, Dict, makeArray } from 'cosmokit'
 
 export * from './utils.js'
 
@@ -180,7 +180,7 @@ export default class Yakumo extends cordis.Service<Yakumo.Config, Context> {
           return filter(this.workspaces[folder], folder)
         })
       } else {
-        return name.flatMap((name) => this.locate(name, options))
+        return deduplicate(name.flatMap((name) => this.locate(name, options)))
       }
     }
 
