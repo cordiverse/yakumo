@@ -97,7 +97,6 @@ const builtin = [
 
 export default class Yakumo extends cordis.Service<Yakumo.Config, Context> {
   cwd: string
-  args = process.argv.slice(2)
   argv!: Arguments
   manager: Manager
   workspaces!: Dict<PackageJson>
@@ -111,11 +110,11 @@ export default class Yakumo extends cordis.Service<Yakumo.Config, Context> {
     this.manager = manager
 
     for (const name in config.pipeline || {}) {
-      this.register(name, async () => {
+      this.register(name, async (...rest: any[]) => {
         const tasks = config.pipeline![name]
         for (const task of tasks) {
           const [name, ...args] = task.split(/\s+/g)
-          await this.execute(name, ...args)
+          await this.execute(name, ...args, ...rest)
         }
       })
     }
@@ -216,11 +215,9 @@ export default class Yakumo extends cordis.Service<Yakumo.Config, Context> {
     await this.ctx.events.flush()
     if (!this.commands[name]) {
       if (builtin.includes(name)) {
-        this.ctx.loader.config.push({
+        await this.ctx.loader.create({
           name: 'yakumo/' + name,
-        } as any)
-        await this.ctx.loader.writeConfig()
-        await this.ctx.loader.start()
+        })
         return this.execute(name, ...args)
       }
       console.error(kleur.red(`unknown command: ${name}`))
@@ -228,18 +225,20 @@ export default class Yakumo extends cordis.Service<Yakumo.Config, Context> {
     }
 
     const [callback, options] = this.commands[name]
-    const argv = yargs([...this.args.slice(1), ...args], options) as Arguments
+    const argv = yargs(args, options) as Arguments
     argv.config = options
     await this.initialize(argv)
-    return callback()
+    return callback(...args)
   }
 
   async start() {
-    if (!this.args.length) {
+    if (this.ctx.get('loader')?.options.name !== 'yakumo') return
+    const [name, ...args] = process.argv.slice(2)
+    if (!name) {
       console.log('yakumo')
       process.exit(0)
     }
-    this.execute(this.args[0])
+    this.execute(name, ...args)
   }
 
   async install() {

@@ -15,15 +15,13 @@ for (let i = 2; i < process.argv.length; i++) {
 
 await start({
   name: 'yakumo',
-  fallback: {
-    config: [
-      { name: 'yakumo' },
-      { name: 'yakumo/list' },
-      { name: 'yakumo/prepare' },
-      { name: 'yakumo/publish' },
-      { name: 'yakumo/test' },
-      { name: 'yakumo/upgrade' },
-      { name: 'yakumo/version' },
-    ],
-  },
+  initial: [
+    { name: 'yakumo' },
+    { name: 'yakumo/list' },
+    { name: 'yakumo/prepare' },
+    { name: 'yakumo/publish' },
+    { name: 'yakumo/test' },
+    { name: 'yakumo/upgrade' },
+    { name: 'yakumo/version' },
+  ],
 })

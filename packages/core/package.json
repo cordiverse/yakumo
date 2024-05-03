@@ -42,15 +42,36 @@
     "cli",
     "script"
   ],
+  "cordis": {
+    "ecosystem": {
+      "inject": [
+        "yakumo"
+      ],
+      "pattern": [
+        "yakumo-*"
+      ]
+    },
+    "exports": {
+      "./list": {},
+      "./prepare": {},
+      "./publish": {},
+      "./test": {},
+      "./upgrade": {},
+      "./version": {}
+    }
+  },
   "devDependencies": {
     "@types/picomatch": "^2.3.3",
     "@types/prompts": "^2.4.9",
     "@types/which-pm-runs": "^1.0.2",
     "@types/yargs-parser": "^21.0.3"
   },
+  "peerDependencies": {
+    "cordis": "^3.14.0"
+  },
   "dependencies": {
-    "cordis": "^3.13.3",
-    "cosmokit": "^1.5.2",
+    "cordis": "^3.14.0",
+    "cosmokit": "^1.6.2",
     "detect-indent": "^6.1.0",
     "execa": "^5.1.1",
     "get-registry": "^1.1.0",
@@ -60,7 +81,7 @@
     "p-map": "^4.0.0",
     "picomatch": "^2.3.1",
     "prompts": "^2.4.2",
-    "semver": "^7.5.4",
+    "semver": "^7.6.0",
     "which-pm-runs": "^1.1.0",
     "yargs-parser": "^21.1.1",
     "yargs-unparser": "^2.0.0"
