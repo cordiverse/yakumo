@@ -8,3 +8,6 @@ globals:
 
 extends:
   - '@cordisjs/eslint-config'
+
+rules:
+  no-console: off

@@ -9,6 +9,6 @@
   "devDependencies": {
     "esbuild": "^0.18.20",
     "esbuild-register": "^3.5.0",
-    "typescript": "^5.3.2"
+    "typescript": "^5.4.3"
   }
 }
