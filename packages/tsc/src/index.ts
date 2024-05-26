@@ -160,11 +160,11 @@ export function apply(ctx: Context) {
         prepareBuild(buildTargets),
         bundleNodes(bundleTargets),
       ])
+      await Promise.all(tasks)
       if (buildTargets.length) {
         const code = await compile(['-b', 'tsconfig.temp.json', '--listEmittedFiles'])
         if (code) process.exit(code)
       }
-      await Promise.all(tasks)
     }
     await fs.rm(join(cwd, 'tsconfig.temp.json')).catch(() => {})
   }, {
