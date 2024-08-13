@@ -40,6 +40,7 @@ export interface PackageJson extends Partial<Record<DependencyType, Dict<string>
   private?: boolean
   version: string
   workspaces?: string[]
+  scripts?: Dict<string>
   yakumo?: PackageConfig
   peerDependenciesMeta?: Dict<{ optional?: boolean }>
 }
@@ -90,6 +91,7 @@ const builtin = [
   'list',
   'prepare',
   'publish',
+  'run',
   'test',
   'upgrade',
   'version',

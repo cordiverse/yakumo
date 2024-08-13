@@ -10,6 +10,7 @@
     ".": "./lib/index.js",
     "./cli": "./lib/cli.js",
     "./utils": "./lib/utils.js",
+    "./exec": "./lib/plugins/exec.js",
     "./list": "./lib/plugins/list.js",
     "./prepare": "./lib/plugins/prepare.js",
     "./publish": "./lib/plugins/publish.js",
