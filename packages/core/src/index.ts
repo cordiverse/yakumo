@@ -146,9 +146,8 @@ export default class Yakumo extends cordis.Service<Yakumo.Config, Context> {
   }
 
   resolveIntercept(): Yakumo.Intercept {
-    const caller = this[Context.current]
     let result = this.config
-    let intercept = caller[Context.intercept]
+    let intercept = this.ctx[Context.intercept]
     while (intercept) {
       result = {
         ...result,
@@ -168,7 +167,7 @@ export default class Yakumo extends cordis.Service<Yakumo.Config, Context> {
   }
 
   locate(name: string | string[], options: LocateOptions = {}): string[] {
-    const { alias, exclude } = this.resolveIntercept()
+    const { alias = {}, exclude } = this.resolveIntercept()
     const defaultFilter = options.filter || ((meta) => options.includeRoot || !meta.workspaces)
     const filter = (meta: PackageJson, path: string) => {
       return defaultFilter(meta, path) && !exclude?.some((pattern) => {
@@ -185,13 +184,22 @@ export default class Yakumo extends cordis.Service<Yakumo.Config, Context> {
       }
     }
 
-    if (alias?.[name]) {
+    if (alias[name]) {
       return makeArray(alias[name]).map((path) => {
         if (!this.workspaces[path]) {
           throw new Error(`cannot find workspace ${path} resolved by ${name}`)
         }
         return path
       })
+    }
+
+    for (const key in alias) {
+      if (!key.endsWith('*')) continue
+      if (!name.startsWith(key.slice(0, -1))) continue
+      const results = makeArray(alias[key])
+        .map((path) => path.slice(0, -1) + name.slice(key.length - 1))
+        .filter((path) => this.workspaces[path])
+      if (results.length) return results
     }
 
     const targets = Object.keys(this.workspaces).filter((folder) => {
@@ -217,7 +225,7 @@ export default class Yakumo extends cordis.Service<Yakumo.Config, Context> {
     await this.ctx.events.flush()
     if (!this.commands[name]) {
       if (builtin.includes(name)) {
-        await this.ctx.loader.create({
+        await this.ctx.get('loader')?.create({
           name: 'yakumo/' + name,
         })
         return this.execute(name, ...args)
@@ -234,7 +242,7 @@ export default class Yakumo extends cordis.Service<Yakumo.Config, Context> {
   }
 
   async start() {
-    if (this.ctx.get('loader')?.options.name !== 'yakumo') return
+    if (this.ctx.get('loader')?.config.name !== 'yakumo') return
     const [name, ...args] = process.argv.slice(2)
     if (!name) {
       console.log('yakumo')

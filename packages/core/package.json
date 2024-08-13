@@ -68,10 +68,10 @@
     "@types/yargs-parser": "^21.0.3"
   },
   "peerDependencies": {
-    "cordis": "^3.14.0"
+    "cordis": "^3.17.9"
   },
   "dependencies": {
-    "cordis": "^3.14.0",
+    "cordis": "^3.17.9",
     "cosmokit": "^1.6.2",
     "detect-indent": "^6.1.0",
     "execa": "^5.1.1",
