@@ -126,8 +126,7 @@ export default class Yakumo extends cordis.Service<Yakumo.Config, Context> {
     this.commands[name] = [callback, options]
   }
 
-  async initialize(argv: Arguments) {
-    this.argv = argv
+  async initialize() {
     const folders = await globby(meta.workspaces || [], {
       cwd,
       onlyDirectories: true,
@@ -235,10 +234,20 @@ export default class Yakumo extends cordis.Service<Yakumo.Config, Context> {
     }
 
     const [callback, options] = this.commands[name]
+    const index = args.indexOf('--')
+    const rest = index === -1 ? [] : args.splice(index + 1)
     const argv = yargs(args, options) as Arguments
+    argv['--'] = rest
+    await this.initialize()
+    if (!name.startsWith('yakumo:') && name !== 'run') {
+      await this.execute('run', ...argv._, '--', `yakumo:before:${name}`)
+    }
     argv.config = options
-    await this.initialize(argv)
-    return callback(...args)
+    this.argv = argv
+    await callback(...args)
+    if (!name.startsWith('yakumo:') && name !== 'run') {
+      await this.execute('run', ...argv._.slice(0, index === -1 ? undefined : index), '--', `yakumo:after:${name}`)
+    }
   }
 
   async start() {

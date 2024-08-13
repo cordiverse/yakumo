@@ -5,13 +5,12 @@ export const inject = ['yakumo']
 export function apply(ctx: Context) {
   ctx.register('run', async () => {
     const { argv, cwd } = ctx.yakumo
-    const index = argv._.indexOf('--')
-    if (index === -1 || index === argv._.length - 1) {
-      throw new Error('Missing command')
-    }
-    const [, command, ...rest] = argv._.splice(index)
+    const [command, ...rest] = argv['--'] as string[]
+    if (!command) throw new Error('Missing command')
     const paths = ctx.yakumo.locate(argv._, {
-      filter: (meta) => !!meta.scripts?.[command],
+      filter: () => true,
+    }).filter(path => {
+      return !!ctx.yakumo.workspaces[path].scripts?.[command]
     })
     for (const path of paths) {
       const agent = manager?.name || 'npm'
