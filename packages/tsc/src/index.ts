@@ -113,7 +113,6 @@ export function apply(ctx: Context) {
       const deps = {
         ...meta.dependencies,
         ...meta.devDependencies,
-        ...meta.peerDependencies,
       }
       for (const dep in deps) {
         if (!nodes[dep] || meta.yakumo?.tsc?.ignore?.includes(dep)) continue
