@@ -100,11 +100,13 @@ export function apply(ctx: Context) {
       const fullpath = join(cwd, path)
       try {
         const config = await load(fullpath)
-        if (!config || config.compilerOptions?.noEmit) continue
+        if (config.compilerOptions?.noEmit) continue
         const files = getFiles(meta, config.compilerOptions?.outDir || 'lib')
         const bundle = !!config.compilerOptions?.outFile || files.length === 1 && !!meta.exports
         nodes[meta.name] = { config, bundle, path, meta, prev: [], next: new Set() }
-      } catch {}
+      } catch (error: any) {
+        if (error.code !== 'ENOENT') throw error
+      }
     }
 
     // Step 2: build dependency graph

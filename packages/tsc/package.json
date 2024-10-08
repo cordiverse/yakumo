@@ -38,6 +38,5 @@
   "dependencies": {
     "atsc": "^2.0.1",
     "dtsc": "^3.0.4",
-    "tsconfig-utils": "^4.0.5"
   }
 }
