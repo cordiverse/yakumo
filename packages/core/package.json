@@ -1,7 +1,7 @@
 {
   "name": "yakumo",
   "description": "Manage complex workspaces with ease",
-  "version": "1.0.0-beta.14",
+  "version": "1.0.0-beta.18",
   "type": "module",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
@@ -10,10 +10,10 @@
     ".": "./lib/index.js",
     "./cli": "./lib/cli.js",
     "./utils": "./lib/utils.js",
-    "./exec": "./lib/plugins/exec.js",
     "./list": "./lib/plugins/list.js",
     "./prepare": "./lib/plugins/prepare.js",
     "./publish": "./lib/plugins/publish.js",
+    "./run": "./lib/plugins/run.js",
     "./test": "./lib/plugins/test.js",
     "./upgrade": "./lib/plugins/upgrade.js",
     "./version": "./lib/plugins/version.js",
@@ -44,6 +44,7 @@
     "script"
   ],
   "cordis": {
+    "hidden": true,
     "ecosystem": {
       "inject": [
         "yakumo"
@@ -56,6 +57,7 @@
       "./list": {},
       "./prepare": {},
       "./publish": {},
+      "./run": {},
       "./test": {},
       "./upgrade": {},
       "./version": {}
@@ -68,11 +70,11 @@
     "@types/yargs-parser": "^21.0.3"
   },
   "peerDependencies": {
-    "cordis": "^3.17.9"
+    "cordis": "^3.18.1"
   },
   "dependencies": {
-    "cordis": "^3.17.9",
-    "cosmokit": "^1.6.2",
+    "cordis": "^3.18.1",
+    "cosmokit": "^1.6.3",
     "detect-indent": "^6.1.0",
     "execa": "^5.1.1",
     "get-registry": "^1.1.0",
@@ -82,7 +84,7 @@
     "p-map": "^4.0.0",
     "picomatch": "^2.3.1",
     "prompts": "^2.4.2",
-    "semver": "^7.6.0",
+    "semver": "^7.6.3",
     "which-pm-runs": "^1.1.0",
     "yargs-parser": "^21.1.1",
     "yargs-unparser": "^2.0.0"

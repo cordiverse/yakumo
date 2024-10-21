@@ -29,7 +29,7 @@
   ],
   "peerDependencies": {
     "mocha": "^9",
-    "yakumo": "^1.0.0-beta.14"
+    "yakumo": "^1.0.0-beta.18"
   },
   "devDependencies": {
     "@types/mocha": "^9.1.1"
