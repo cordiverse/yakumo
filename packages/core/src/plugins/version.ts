@@ -4,7 +4,7 @@ import { gt, SemVer } from 'semver'
 import kleur from 'kleur'
 import Yakumo, { Arguments, confirm, Context, cwd, PackageJson } from '../index.js'
 
-const bumpTypes = ['major', 'minor', 'patch', 'version', 'reset'] as const
+const bumpTypes = ['major', 'minor', 'patch', 'version', 'reset', 'local'] as const
 type BumpType = typeof bumpTypes[number]
 
 class Package {
@@ -20,6 +20,7 @@ class Package {
 
   bump(flag: BumpType, options: any, args: Arguments) {
     if (this.meta.private) return
+    if (flag === 'local') return this.meta.version
     let version = new SemVer(this.meta.version)
     const reset = flag === 'reset'
     if (args.stable) {
@@ -53,7 +54,9 @@ class Package {
         return this.version = version.format()
       }
     } else if (flag === 'version') {
-      this.dirty = true
+      if (this.version !== options.version) {
+        this.dirty = true
+      }
       this.version = options.version
       return options.version
     } else {
@@ -134,8 +137,10 @@ class Graph {
   }
 
   async save() {
+    let hasUpdate = false
     await Promise.all(this.each((node) => {
       if (!node.dirty) return
+      hasUpdate = true
       if (node.version === node.meta.version) {
         console.log(`- ${node.meta.name}: dependency updated`)
       } else {
@@ -143,6 +148,9 @@ class Graph {
       }
       return node.save(this.project.indent)
     }))
+    if (!hasUpdate) {
+      console.log('Everything is up-to-date.')
+    }
   }
 }
 
@@ -155,12 +163,13 @@ export function apply(ctx: Context) {
       if (!yes) return
     }
 
-    const flag = (() => {
-      for (const type of bumpTypes) {
-        if (type in ctx.yakumo.argv) return type
-      }
-    })()!
+    const flags = bumpTypes.filter(type => type in ctx.yakumo.argv)
+    if (flags.length > 1) {
+      console.log(kleur.red('You can only specify one bump type.'))
+      return
+    }
 
+    const flag = flags[0]
     if (flag === 'version') {
       // ensure valid version
       new SemVer(ctx.yakumo.argv.version)
@@ -183,7 +192,8 @@ export function apply(ctx: Context) {
       stable: ['P'],
       version: ['v'],
       recursive: ['r'],
+      local: ['l'],
     },
-    boolean: ['major', 'minor', 'patch', 'reset', 'prerelease', 'stable', 'recursive'],
+    boolean: ['major', 'minor', 'patch', 'reset', 'local', 'prerelease', 'stable', 'recursive'],
   })
 }
