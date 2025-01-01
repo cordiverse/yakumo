@@ -37,7 +37,7 @@ export async function install() {
   if (code) process.exit(code)
 }
 
-let registryTask: Promise<string>
+let registryTask: Promise<string | undefined>
 
 export async function fetchRemote(name: string) {
   const registry = await (registryTask ||= getRegistry())

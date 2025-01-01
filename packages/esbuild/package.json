@@ -33,7 +33,7 @@
   },
   "peerDependencies": {
     "esbuild": "*",
-    "yakumo": "^1.0.0-beta.18"
+    "yakumo": "^1.0.0-beta.20"
   },
   "dependencies": {
     "dumble": "^0.2.1",

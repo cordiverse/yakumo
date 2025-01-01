@@ -33,7 +33,7 @@
   },
   "peerDependencies": {
     "typescript": "*",
-    "yakumo": "^1.0.0-beta.18"
+    "yakumo": "^1.0.0-beta.20"
   },
   "dependencies": {
     "atsc": "^2.1.0",
