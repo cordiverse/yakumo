@@ -5,7 +5,7 @@ import detect from 'detect-indent'
 import { manager, spawnAsync } from './utils.js'
 import kleur from 'kleur'
 import { promises as fs, readFileSync } from 'node:fs'
-import { deduplicate, Dict, makeArray } from 'cosmokit'
+import { deduplicate, Dict, isNonNullable, makeArray } from 'cosmokit'
 
 export * from './utils.js'
 
@@ -140,8 +140,7 @@ export default class Yakumo extends cordis.Service<Yakumo.Config, Context> {
         const content = await fs.readFile(`${cwd}${path}/package.json`, 'utf8')
         return [path, JSON.parse(content)] as [string, PackageJson]
       } catch {}
-      return null! // workaround silly strictNullChecks
-    }))).filter(Boolean))
+    }))).filter(isNonNullable))
   }
 
   resolveIntercept(): Yakumo.Intercept {

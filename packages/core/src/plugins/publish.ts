@@ -1,6 +1,6 @@
 import { Context, cwd, exit, Manager, PackageJson, spawnAsync } from '../index.js'
 import { gt, prerelease } from 'semver'
-import { Awaitable } from 'cosmokit'
+import { Awaitable, isNonNullable } from 'cosmokit'
 import { join } from 'path'
 import { fetchRemote, selectVersion } from '../utils.js'
 import ora from 'ora'
@@ -93,8 +93,7 @@ export function apply(ctx: Context) {
       const version = await getVersion(meta.name, isNext(meta.version))
       if (gt(meta.version, version)) return path
       skipped += 1
-      return null! // workaround silly strictNullChecks
-    }))).filter(Boolean)
+    }))).filter(isNonNullable)
     spinner.succeed()
 
     const total = paths.length
