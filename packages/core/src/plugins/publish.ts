@@ -84,21 +84,21 @@ export function apply(ctx: Context) {
           await ctx.yakumo.save(path)
         }))
       }
-    } else {
-      let progress = 0
-      spinner.start(`Loading workspaces (0/${paths.length})`)
-      paths = (await Promise.all(paths.map(async (path) => {
-        const meta = ctx.yakumo.workspaces[path]
-        spinner.text = `Loading workspaces (${++progress}/${paths.length})`
-        const version = await getVersion(meta.name, isNext(meta.version))
-        if (gt(meta.version, version)) return path
-        return null! // workaround silly strictNullChecks
-      }))).filter(Boolean)
-      spinner.succeed()
     }
+    let progress = 0, skipped = 0
+    spinner.start(`Loading workspaces (0/${paths.length})`)
+    paths = (await Promise.all(paths.map(async (path) => {
+      const meta = ctx.yakumo.workspaces[path]
+      spinner.text = `Loading workspaces (${++progress}/${paths.length})`
+      const version = await getVersion(meta.name, isNext(meta.version))
+      if (gt(meta.version, version)) return path
+      skipped += 1
+      return null! // workaround silly strictNullChecks
+    }))).filter(Boolean)
+    spinner.succeed()
 
     const total = paths.length
-    if (!argv.debug) spinner.start(`Publishing packages (0/${total})`)
+    if (!argv.debug && total > 0) spinner.start(`Publishing packages (0/${total})`)
 
     let completed = 0, failed = 0
     await (argv.debug ? serial : parallel)(paths, async (path) => {
@@ -125,10 +125,11 @@ export function apply(ctx: Context) {
       }
     })
 
+    const skippedText = skipped ? `, ${skipped} skipped` : ''
     if (failed) {
-      spinner.fail(`Published ${total - failed} packages, ${failed} failed.`)
+      spinner.fail(`Published ${total - failed} packages, ${failed} failed${skippedText}.`)
     } else {
-      spinner.succeed(`Published ${total} packages.`)
+      spinner.succeed(`Published ${total} packages${skippedText}.`)
     }
   }, {
     boolean: ['debug'],
