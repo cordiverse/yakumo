@@ -64,9 +64,13 @@ function getFiles(meta: PackageJson, outDir: string) {
 
 async function bundleNodes(nodes: Node[]) {
   for (const node of nodes) {
+    const outDir = node.config.compilerOptions?.outDir || 'lib'
     // TODO: support multiple entry points
-    await dtsc.build(join(cwd, node.path))
-    console.log('dtsc:', node.path + '/lib/index.d.ts')
+    await dtsc.build(join(cwd, node.path), [
+      '--outDir',
+      outDir
+    ])
+    console.log('dtsc:', `${node.path}/${outDir}/index.d.ts`)
   }
 }
 
