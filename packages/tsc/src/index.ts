@@ -66,7 +66,6 @@ async function bundleNodes(nodes: Node[]) {
   for (const node of nodes) {
     // TODO: support multiple entry points
     await dtsc.build(join(cwd, node.path))
-    console.log('dtsc:', node.path + '/lib/index.d.ts')
   }
 }
 
@@ -102,7 +101,11 @@ export function apply(ctx: Context) {
         const config = await load(fullpath)
         if (config.compilerOptions?.noEmit) continue
         const files = getFiles(meta, config.compilerOptions?.outDir || 'lib')
-        const bundle = !!config.compilerOptions?.outFile || files.length === 1 && !!meta.exports
+        const bundle = config.compilerOptions?.outFile
+          ? true
+          : config.compilerOptions?.outDir
+            ? false
+            : files.length === 1 && !!meta.exports
         nodes[meta.name] = { config, bundle, path, meta, prev: [], next: new Set() }
       } catch (error: any) {
         if (error.code !== 'ENOENT') throw error

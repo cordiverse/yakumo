@@ -74,7 +74,7 @@
   },
   "dependencies": {
     "cordis": "^3.18.1",
-    "cosmokit": "^1.7.0",
+    "cosmokit": "^1.7.2",
     "detect-indent": "^6.1.0",
     "execa": "^5.1.1",
     "get-registry": "^1.2.0",
