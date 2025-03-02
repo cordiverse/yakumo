@@ -1,4 +1,5 @@
-import { Context, manager, spawnAsync } from '../index.js'
+import { Context } from 'cordis'
+import { manager, spawnAsync } from '../index.js'
 
 export const inject = ['yakumo']
 

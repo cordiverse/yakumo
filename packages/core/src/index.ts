@@ -1,13 +1,24 @@
-import * as cordis from 'cordis'
+import { Context, Service } from 'cordis'
 import globby from 'globby'
 import yargs from 'yargs-parser'
 import detect from 'detect-indent'
-import { manager, spawnAsync } from './utils.js'
+import { manager, spawnAsync } from './utils.ts'
 import kleur from 'kleur'
 import { promises as fs, readFileSync } from 'node:fs'
 import { deduplicate, Dict, isNonNullable, makeArray } from 'cosmokit'
 
-export * from './utils.js'
+export * from './utils.ts'
+
+declare module 'cordis' {
+  interface Context {
+    yakumo: Yakumo
+    register(name: string, callback: () => void, options?: Options): void
+  }
+
+  interface Intercept {
+    yakumo: Yakumo.Intercept
+  }
+}
 
 export const cwd = process.cwd()
 const content = readFileSync(`${cwd}/package.json`, 'utf8')
@@ -49,27 +60,6 @@ export namespace PackageJson {
   export type Exports = string | { [key: string]: Exports }
 }
 
-export interface Events<C extends Context = Context> extends cordis.Events<C> {}
-
-export interface Intercept<C extends Context = Context> extends cordis.Intercept<C> {
-  yakumo: Yakumo.Intercept
-}
-
-export interface Context {
-  [Context.events]: Events<this>
-  [Context.intercept]: Intercept<this>
-  yakumo: Yakumo
-  register(name: string, callback: () => void, options?: Options): void
-}
-
-export class Context extends cordis.Context {
-  constructor(config?: any) {
-    super(config)
-    this.provide('yakumo', undefined, true)
-    this.plugin(Yakumo, config)
-  }
-}
-
 export interface LocateOptions {
   includeRoot?: boolean
   filter?(meta: PackageJson, path: string): boolean
@@ -97,7 +87,7 @@ const builtin = [
   'version',
 ]
 
-export default class Yakumo extends cordis.Service<Yakumo.Config, Context> {
+export default class Yakumo extends Service {
   cwd: string
   argv!: Arguments
   manager: Manager
@@ -106,7 +96,7 @@ export default class Yakumo extends cordis.Service<Yakumo.Config, Context> {
   commands: Dict = {}
 
   constructor(public ctx: Context, public config: Yakumo.Config) {
-    super(ctx, 'yakumo', true)
+    super(ctx, 'yakumo')
     ctx.mixin('yakumo', ['register'])
     this.cwd = cwd
     this.manager = manager
@@ -220,7 +210,6 @@ export default class Yakumo extends cordis.Service<Yakumo.Config, Context> {
   }
 
   async execute(name: string, ...args: string[]) {
-    await this.ctx.events.flush()
     if (!this.commands[name]) {
       if (builtin.includes(name)) {
         await this.ctx.get('loader')?.create({
@@ -249,14 +238,17 @@ export default class Yakumo extends cordis.Service<Yakumo.Config, Context> {
     }
   }
 
-  async start() {
-    if (this.ctx.get('loader')?.config.name !== 'yakumo') return
+  start() {
+    const loader = this.ctx.get('loader')
+    if (loader?.config.name !== 'yakumo') return
     const [name, ...args] = process.argv.slice(2)
     if (!name) {
       console.log('yakumo')
       process.exit(0)
     }
-    this.execute(name, ...args)
+    loader.wait().then(() => {
+      return this.execute(name, ...args)
+    })
   }
 
   async install() {

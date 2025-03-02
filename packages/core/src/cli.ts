@@ -20,6 +20,7 @@ await start({
     { name: 'yakumo/list' },
     { name: 'yakumo/prepare' },
     { name: 'yakumo/publish' },
+    { name: 'yakumo/run' },
     { name: 'yakumo/test' },
     { name: 'yakumo/upgrade' },
     { name: 'yakumo/version' },

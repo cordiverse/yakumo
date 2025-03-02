@@ -1,5 +1,5 @@
 import { spawn } from 'child_process'
-import { Context } from '../index.js'
+import { Context } from 'cordis'
 import parse from 'yargs-parser'
 import unparse from 'yargs-unparser'
 import globby from 'globby'

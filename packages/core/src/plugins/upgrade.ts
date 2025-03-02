@@ -1,4 +1,5 @@
-import { Context, DependencyType, PackageJson, spawnAsync } from '../index.js'
+import { Context } from 'cordis'
+import { DependencyType, PackageJson, spawnAsync } from '../index.js'
 import kleur from 'kleur'
 import { gt } from 'semver'
 import { fetchRemote, selectVersion } from '../utils.js'

@@ -1,4 +1,5 @@
-import { Context, cwd, exit, Manager, PackageJson, spawnAsync } from '../index.js'
+import { Context } from 'cordis'
+import { cwd, exit, Manager, PackageJson, spawnAsync } from '../index.js'
 import { gt, prerelease } from 'semver'
 import { Awaitable, isNonNullable } from 'cosmokit'
 import { join } from 'path'
@@ -11,7 +12,9 @@ declare module '../index.js' {
   interface PackageJson {
     $copied?: boolean
   }
+}
 
+declare module 'cordis' {
   interface Events {
     'publish/before'(path: string, meta: PackageJson): Awaitable<void>
     'publish/after'(path: string, meta: PackageJson): Awaitable<void>

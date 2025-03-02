@@ -1,8 +1,9 @@
+import { Context } from 'cordis'
 import { writeFile } from 'fs/promises'
 import { readFileSync } from 'fs'
 import { gt, SemVer } from 'semver'
 import kleur from 'kleur'
-import Yakumo, { Arguments, confirm, Context, cwd, PackageJson } from '../index.js'
+import { Arguments, confirm, cwd, PackageJson } from '../index.js'
 
 const bumpTypes = ['major', 'minor', 'patch', 'version', 'reset', 'local'] as const
 type BumpType = typeof bumpTypes[number]
@@ -86,8 +87,8 @@ class Package {
 class Graph {
   nodes: Record<string, Package> = {}
 
-  constructor(public project: Yakumo) {
-    for (const path in project.workspaces) {
+  constructor(public ctx: Context) {
+    for (const path in ctx.yakumo.workspaces) {
       this.nodes[path] = new Package(path)
     }
   }
@@ -101,7 +102,7 @@ class Graph {
   }
 
   bump(node: Package, flag: BumpType, args: Arguments) {
-    const version = node.bump(flag, this.project.argv, args)
+    const version = node.bump(flag, this.ctx.yakumo.argv, args)
     if (!version) return
     const dependents = new Set<Package>()
     this.each((target) => {
@@ -132,7 +133,7 @@ class Graph {
         }
       }
     })
-    if (!this.project.argv.recursive) return
+    if (!this.ctx.yakumo.argv.recursive) return
     dependents.forEach(dep => this.bump(dep, flag, args))
   }
 
@@ -146,7 +147,7 @@ class Graph {
       } else {
         console.log(`- ${node.meta.name}: ${kleur.cyan(node.meta.version)} => ${kleur.green(node.version)}`)
       }
-      return node.save(this.project.indent)
+      return node.save(this.ctx.yakumo.indent)
     }))
     if (!hasUpdate) {
       console.log('Everything is up-to-date.')
@@ -175,7 +176,7 @@ export function apply(ctx: Context) {
       new SemVer(ctx.yakumo.argv.version)
     }
 
-    const graph = new Graph(ctx.yakumo)
+    const graph = new Graph(ctx)
     const paths = ctx.yakumo.locate(ctx.yakumo.argv._)
     for (const path of paths) {
       graph.bump(graph.nodes[path], flag, ctx.yakumo.argv)

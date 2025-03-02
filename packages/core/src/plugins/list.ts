@@ -1,5 +1,5 @@
 import { Dict } from 'cosmokit'
-import { Context } from '../index.js'
+import { Context } from 'cordis'
 
 interface Node {
   name: string

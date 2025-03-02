@@ -24,8 +24,7 @@
     "node": "^18.0.0 || >=20.0.0"
   },
   "files": [
-    "lib",
-    "src"
+    "lib"
   ],
   "author": "Shigma <shigma10826@gmail.com>",
   "license": "MIT",
@@ -70,10 +69,10 @@
     "@types/yargs-parser": "^21.0.3"
   },
   "peerDependencies": {
-    "cordis": "^3.18.1"
+    "cordis": "^4.0.0-alpha.1"
   },
   "dependencies": {
-    "cordis": "^3.18.1",
+    "cordis": "^4.0.0-alpha.1",
     "cosmokit": "^1.7.2",
     "detect-indent": "^6.1.0",
     "execa": "^5.1.1",

@@ -1,4 +1,4 @@
-import { Context } from '../index.js'
+import { Context } from 'cordis'
 import picomatch from 'picomatch'
 
 export const inject = ['yakumo']
