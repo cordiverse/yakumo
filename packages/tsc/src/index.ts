@@ -1,6 +1,7 @@
 import * as fs from 'node:fs/promises'
 import { join } from 'path'
-import { Context, cwd, PackageJson } from 'yakumo'
+import { Context } from 'cordis'
+import { PackageJson } from 'yakumo'
 import { compile, load, TsConfig } from 'tsconfig-utils'
 import * as atsc from 'atsc'
 import * as dtsc from 'dtsc'
@@ -22,6 +23,8 @@ interface Node {
   prev: string[]
   next: Set<string>
 }
+
+const cwd = process.cwd()
 
 async function prepareBuild(nodes: Node[]) {
   if (!nodes.length) return
