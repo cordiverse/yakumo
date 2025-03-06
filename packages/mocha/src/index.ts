@@ -1,63 +1,41 @@
 import { Context } from 'cordis'
 import {} from 'yakumo'
-import { spawn } from 'child_process'
-// @ts-ignore
-import { loadOptions } from 'mocha/lib/cli/options.js'
-// @ts-ignore
-import { isNodeFlag } from 'mocha/lib/cli/node-flags.js'
-import unparse from 'yargs-unparser'
-import { createRequire } from 'module'
-
-const trimV8Option = value => value !== 'v8-options' && /^v8-/.test(value) ? value.slice(3) : value
+import Mocha from 'mocha'
+import globby from 'globby'
 
 export const inject = ['yakumo']
 
 export function apply(ctx: Context) {
   ctx.register('mocha', async () => {
-    const opts = loadOptions(process.argv.slice(3))
-    if (opts._.length) {
-      opts._ = opts._.flatMap((arg: string) => {
-        const [folder] = arg.split('/', 1)
-        const name = arg.slice(folder.length + 1) || '*'
+    function getFiles(names: string[]) {
+      if (!names.length) return ['**/tests/*.spec.ts']
+      return names.flatMap((name) => {
+        const [folder] = name.split('/', 1)
+        name = name.slice(folder.length + 1) || '*'
         return ctx.yakumo.locate(folder, { includeRoot: true }).map((path) => {
           return `${path}/tests/${name}.spec.ts`.slice(1)
         })
       })
-    } else {
-      opts._ = ['**/tests/*.spec.ts']
     }
 
-    const mochaArgs = {}
-    const nodeArgs = {}
-    Object.keys(opts).forEach(opt => {
-      if (isNodeFlag(opt)) {
-        nodeArgs[trimV8Option(opt)] = opts[opt]
-      } else {
-        mochaArgs[opt] = opts[opt]
-      }
-    })
-
-    const child = spawn(process.execPath, [
-      ...unparse(nodeArgs),
-      createRequire(import.meta.url).resolve('mocha/lib/cli/cli.js'),
-      ...unparse(mochaArgs),
-    ], {
-      stdio: 'inherit',
+    const files = await globby(getFiles(ctx.yakumo.argv._), {
       cwd: ctx.yakumo.cwd,
+      onlyFiles: true,
+      ignore: ['**/node_modules/**'],
     })
 
-    child.on('exit', (code, signal) => {
-      process.on('exit', () => {
-        if (signal) {
-          process.kill(process.pid, signal)
-        } else {
-          process.exit(code ?? undefined)
-        }
-      })
+    // TODO inherit mocha options
+    const mocha = new Mocha()
+    for (const file of files) {
+      mocha.addFile(file)
+    }
+
+    const runner = mocha.run((failures) => {
+      process.exit(failures)
     })
 
     process.on('SIGINT', () => {
-      child.kill('SIGINT')
+      runner.abort()
     })
   })
 }
