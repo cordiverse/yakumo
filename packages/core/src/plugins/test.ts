@@ -23,6 +23,7 @@ export function apply(ctx: Context) {
     const files = await globby(getFiles(argv._ as string[]), {
       cwd: ctx.yakumo.cwd,
       onlyFiles: true,
+      ignore: ['**/node_modules/**'],
     })
     argv._ = []
     const child = spawn(process.execPath, [

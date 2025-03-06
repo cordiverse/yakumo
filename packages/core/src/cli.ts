@@ -3,7 +3,7 @@
 import { start } from 'cordis/cli'
 
 for (let i = 2; i < process.argv.length; i++) {
-  if (!process.argv[i].startsWith('--import')) break
+  if (!process.argv[i].startsWith('--import')) continue
   const [arg] = process.argv.splice(i, 1)
   let [, path] = arg.split('=')
   if (!path) {
