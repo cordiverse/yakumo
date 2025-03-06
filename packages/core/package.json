@@ -1,7 +1,7 @@
 {
   "name": "yakumo",
   "description": "Manage complex workspaces with ease",
-  "version": "2.0.0-alpha.0",
+  "version": "2.0.0-alpha.1",
   "type": "module",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
@@ -67,10 +67,10 @@
     "@types/prompts": "^2.4.9",
     "@types/which-pm-runs": "^1.0.2",
     "@types/yargs-parser": "^21.0.3",
-    "cordis": "^4.0.0-alpha.1"
+    "cordis": "^4.0.0-alpha.2"
   },
   "peerDependencies": {
-    "cordis": "^4.0.0-alpha.1"
+    "cordis": "^4.0.0-alpha.2"
   },
   "dependencies": {
     "cosmokit": "^1.7.2",

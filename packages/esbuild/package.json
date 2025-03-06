@@ -33,16 +33,16 @@
     ]
   },
   "devDependencies": {
-    "cordis": "^4.0.0-alpha.1",
+    "cordis": "^4.0.0-alpha.2",
     "esbuild": "^0.24.0",
     "typescript": "^5.6.2",
-    "yakumo": "^2.0.0-alpha.0"
+    "yakumo": "^2.0.0-alpha.1"
   },
   "peerDependencies": {
-    "cordis": "^4.0.0-alpha.1",
+    "cordis": "^4.0.0-alpha.2",
     "esbuild": "*",
     "typescript": "*",
-    "yakumo": "^2.0.0-alpha.0"
+    "yakumo": "^2.0.0-alpha.1"
   },
   "dependencies": {
     "dumble": "^0.2.1",

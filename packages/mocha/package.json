@@ -33,15 +33,15 @@
     ]
   },
   "peerDependencies": {
-    "cordis": "^4.0.0-alpha.1",
+    "cordis": "^4.0.0-alpha.2",
     "mocha": "^9",
-    "yakumo": "^2.0.0-alpha.0"
+    "yakumo": "^2.0.0-alpha.1"
   },
   "devDependencies": {
     "@types/mocha": "^9.1.1",
-    "cordis": "^4.0.0-alpha.1",
+    "cordis": "^4.0.0-alpha.2",
     "mocha": "^9",
-    "yakumo": "^2.0.0-alpha.0"
+    "yakumo": "^2.0.0-alpha.1"
   },
   "dependencies": {
     "globby": "^11.1.0",
