@@ -1,7 +1,7 @@
 {
   "name": "yakumo-tsc",
   "description": "Compile TypeScript for Yakumo",
-  "version": "2.0.0-alpha.1",
+  "version": "2.0.0-alpha.2",
   "type": "module",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
@@ -34,14 +34,12 @@
     ]
   },
   "devDependencies": {
-    "cordis": "^4.0.0-alpha.2",
-    "typescript": "^5.6.2",
-    "yakumo": "^2.0.0-alpha.1"
+    "typescript": "^5.8.2",
+    "yakumo": "^2.0.0-alpha.2"
   },
   "peerDependencies": {
-    "cordis": "^4.0.0-alpha.2",
     "typescript": "*",
-    "yakumo": "^2.0.0-alpha.1"
+    "yakumo": "^2.0.0-alpha.2"
   },
   "dependencies": {
     "atsc": "^2.1.0",

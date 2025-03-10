@@ -1,7 +1,7 @@
 {
   "name": "yakumo-esbuild",
   "description": "Esbuild support for Yakumo",
-  "version": "2.0.0-alpha.0",
+  "version": "2.0.0-alpha.1",
   "type": "module",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
@@ -33,16 +33,14 @@
     ]
   },
   "devDependencies": {
-    "cordis": "^4.0.0-alpha.2",
-    "esbuild": "^0.24.0",
-    "typescript": "^5.6.2",
-    "yakumo": "^2.0.0-alpha.1"
+    "esbuild": "^0.25.0",
+    "typescript": "^5.8.2",
+    "yakumo": "^2.0.0-alpha.2"
   },
   "peerDependencies": {
-    "cordis": "^4.0.0-alpha.2",
     "esbuild": "*",
     "typescript": "*",
-    "yakumo": "^2.0.0-alpha.1"
+    "yakumo": "^2.0.0-alpha.2"
   },
   "dependencies": {
     "dumble": "^0.2.1",

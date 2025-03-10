@@ -1,7 +1,6 @@
 import * as fs from 'node:fs/promises'
 import { join } from 'path'
-import { Context } from 'cordis'
-import { PackageJson } from 'yakumo'
+import { Context, PackageJson } from 'yakumo'
 import { compile, load, TsConfig } from 'tsconfig-utils'
 import * as atsc from 'atsc'
 import * as dtsc from 'dtsc'

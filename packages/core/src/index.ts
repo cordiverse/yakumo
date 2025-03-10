@@ -7,6 +7,7 @@ import kleur from 'kleur'
 import { promises as fs, readFileSync } from 'node:fs'
 import { deduplicate, Dict, isNonNullable, makeArray } from 'cosmokit'
 
+export * from 'cordis'
 export * from './utils.ts'
 
 declare module 'cordis' {
