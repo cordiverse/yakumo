@@ -1,6 +1,13 @@
 import { Context, z } from 'yakumo'
 import { load } from 'tsconfig-utils'
 import dumble from 'dumble'
+import type { BuildOptions } from 'esbuild'
+
+declare module 'yakumo' {
+  interface Events {
+    'yakumo/esbuild'(path: string, options: BuildOptions, next: () => Promise<void>): Promise<void>
+  }
+}
 
 export const inject = ['yakumo']
 
@@ -21,6 +28,11 @@ export function apply(ctx: Context, config: Config) {
       if (!tsconfig) return
       await dumble(cwd, ctx.yakumo.workspaces[path], tsconfig, {
         minify: ctx.yakumo.argv.minify ?? config.minify,
+        build: async (options, callback) => {
+          await ctx.waterfall('yakumo/esbuild', path, options, async () => {
+            await callback(options)
+          })
+        },
       })
     }))
   }, {
