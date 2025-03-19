@@ -239,7 +239,7 @@ export default class Yakumo extends Service {
     }
   }
 
-  start() {
+  [Context.init]() {
     const loader = this.ctx.get('loader')
     if (loader?.config.name !== 'yakumo') return
     const [name, ...args] = process.argv.slice(2)

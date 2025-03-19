@@ -69,8 +69,8 @@
     "@types/yargs-parser": "^21.0.3"
   },
   "dependencies": {
-    "cordis": "^4.0.0-alpha.4",
-    "cosmokit": "^1.7.3",
+    "cordis": "^4.0.0-alpha.7",
+    "cosmokit": "^1.7.4",
     "detect-indent": "^6.1.0",
     "execa": "^5.1.1",
     "get-registry": "^1.2.0",

@@ -20,7 +20,6 @@ class Package {
   }
 
   bump(flag: BumpType, options: any, args: Arguments) {
-    if (this.meta.private) return
     if (flag === 'local') return this.meta.version
     let version = new SemVer(this.meta.version)
     const reset = flag === 'reset'
