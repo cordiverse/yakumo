@@ -35,11 +35,11 @@
   },
   "devDependencies": {
     "typescript": "^5.8.2",
-    "yakumo": "^2.0.0-alpha.2"
+    "yakumo": "^2.0.0-alpha.3"
   },
   "peerDependencies": {
     "typescript": "*",
-    "yakumo": "^2.0.0-alpha.2"
+    "yakumo": "^2.0.0-alpha.3"
   },
   "dependencies": {
     "atsc": "^2.1.0",
