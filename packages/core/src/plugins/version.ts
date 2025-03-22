@@ -1,6 +1,6 @@
 import { Context } from 'cordis'
-import { writeFile } from 'fs/promises'
-import { readFileSync } from 'fs'
+import { writeFile } from 'node:fs/promises'
+import { readFileSync } from 'node:fs'
 import { gt, SemVer } from 'semver'
 import kleur from 'kleur'
 import { Arguments, confirm, cwd, PackageJson } from '../index.js'

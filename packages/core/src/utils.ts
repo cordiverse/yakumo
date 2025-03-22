@@ -1,7 +1,7 @@
 import ora from 'ora'
 import prompts from 'prompts'
 import which from 'which-pm-runs'
-import spawn from 'execa'
+import { spawn, SpawnOptions } from 'node:child_process'
 import getRegistry from 'get-registry'
 import semver from 'semver'
 
@@ -20,7 +20,7 @@ export function exit(message: string) {
   return process.exit(0)
 }
 
-export function spawnAsync(args: string[], options: spawn.Options = {}) {
+export function spawnAsync(args: string[], options: SpawnOptions = {}) {
   const child = spawn(args[0], args.slice(1), options)
   return new Promise<number>((resolve) => {
     child.stderr?.pipe(process.stderr)

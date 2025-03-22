@@ -2,11 +2,11 @@ import { Context } from 'cordis'
 import { cwd, exit, Manager, PackageJson, spawnAsync } from '../index.js'
 import { gt, prerelease } from 'semver'
 import { Awaitable, isNonNullable } from 'cosmokit'
-import { join } from 'path'
+import { join } from 'node:path'
 import { fetchRemote, selectVersion } from '../utils.js'
 import ora from 'ora'
 import prompts from 'prompts'
-import assert from 'assert'
+import assert from 'node:assert'
 
 declare module '../index.js' {
   interface PackageJson {

@@ -1,5 +1,5 @@
 import { Context, Service } from 'cordis'
-import globby from 'globby'
+import { globby } from 'globby'
 import yargs from 'yargs-parser'
 import detect from 'detect-indent'
 import { manager, spawnAsync } from './utils.ts'

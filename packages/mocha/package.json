@@ -42,7 +42,7 @@
     "yakumo": "^2.0.0-alpha.3"
   },
   "dependencies": {
-    "globby": "^11.1.0",
+    "globby": "^14.1.0",
     "yargs-unparser": "^2.0.0"
   }
 }

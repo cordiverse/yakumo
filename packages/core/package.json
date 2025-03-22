@@ -63,7 +63,7 @@
     }
   },
   "devDependencies": {
-    "@types/picomatch": "^2.3.3",
+    "@types/picomatch": "^3.0.2",
     "@types/prompts": "^2.4.9",
     "@types/which-pm-runs": "^1.0.2",
     "@types/yargs-parser": "^21.0.3"
@@ -71,16 +71,16 @@
   "dependencies": {
     "cordis": "^4.0.0-alpha.7",
     "cosmokit": "^1.7.4",
-    "detect-indent": "^6.1.0",
-    "execa": "^5.1.1",
+    "detect-indent": "^7.0.1",
+    "execa": "^9.5.2",
     "get-registry": "^1.2.0",
-    "globby": "^11.1.0",
+    "globby": "^14.1.0",
     "kleur": "^4.1.5",
-    "ora": "^5.4.1",
-    "p-map": "^4.0.0",
-    "picomatch": "^2.3.1",
+    "ora": "^8.2.0",
+    "p-map": "^7.0.3",
+    "picomatch": "^4.0.2",
     "prompts": "^2.4.2",
-    "semver": "^7.6.3",
+    "semver": "^7.7.1",
     "which-pm-runs": "^1.1.0",
     "yargs-parser": "^21.1.1",
     "yargs-unparser": "^2.0.0"

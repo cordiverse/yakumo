@@ -1,6 +1,6 @@
 import { Context } from 'yakumo'
 import Mocha from 'mocha'
-import globby from 'globby'
+import { globby } from 'globby'
 
 export const inject = ['yakumo']
 

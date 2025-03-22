@@ -1,8 +1,8 @@
-import { spawn } from 'child_process'
+import { spawn } from 'node:child_process'
 import { Context } from 'cordis'
 import parse from 'yargs-parser'
 import unparse from 'yargs-unparser'
-import globby from 'globby'
+import { globby } from 'globby'
 
 export const inject = ['yakumo']
 
