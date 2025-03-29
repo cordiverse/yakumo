@@ -121,7 +121,9 @@ export function apply(ctx: Context) {
         ...meta.dependencies,
         ...meta.devDependencies,
       }
-      for (const dep in deps) {
+      for (const [key, value] of Object.entries(deps)) {
+        const capture = /^npm:((?:@[^/]+\/)?[^@]+)@.+$/.exec(value)
+        const dep = capture ? capture[1] : key
         if (!nodes[dep] || meta.yakumo?.tsc?.ignore?.includes(dep)) continue
         nodes[name].prev.push(dep)
         nodes[dep].next.add(name)
