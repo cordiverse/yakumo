@@ -1,9 +1,9 @@
 import { Context } from 'cordis'
 import { cwd, exit, Manager, PackageJson, spawnAsync } from '../index.js'
-import { gt, prerelease } from 'semver'
-import { Awaitable, isNonNullable } from 'cosmokit'
+import { maxSatisfying, prerelease } from 'semver'
+import { Awaitable } from 'cosmokit'
 import { join } from 'node:path'
-import { fetchRemote, selectVersion } from '../utils.js'
+import { fetchRemote } from '../utils.js'
 import ora from 'ora'
 import prompts from 'prompts'
 import assert from 'node:assert'
@@ -18,16 +18,6 @@ declare module 'cordis' {
   interface Events {
     'publish/before'(path: string, meta: PackageJson): Awaitable<void>
     'publish/after'(path: string, meta: PackageJson): Awaitable<void>
-  }
-}
-
-async function getVersion(name: string, isNext = false) {
-  const remote = await fetchRemote(name).catch(() => null)
-  if (!remote) return '0.0.0'
-  if (isNext) {
-    return selectVersion(remote, 'next') || selectVersion(remote, 'latest') || '0.0.0'
-  } else {
-    return selectVersion(remote, 'latest') || '0.0.0'
   }
 }
 
@@ -67,7 +57,7 @@ export function apply(ctx: Context) {
     let paths = ctx.yakumo.locate(argv._, {
       filter: (meta) => {
         // 1. workspace roots are always private
-        // 2. ignore private packages if not explicitly specified
+        // 2. ignore private packages unless explicitly specified
         return argv._.length ? !meta.workspaces : !meta.private
       },
     })
@@ -88,19 +78,62 @@ export function apply(ctx: Context) {
         }))
       }
     }
-    let progress = 0, skipped = 0
-    spinner.start(`Loading workspaces (0/${paths.length})`)
-    paths = (await Promise.all(paths.map(async (path) => {
+
+    interface Constraint {
+      meta?: PackageJson
+      ranges: Record<string, string>
+    }
+    const constraints: Record<string, Constraint> = Object.create(null)
+    for (const path of paths) {
       const meta = ctx.yakumo.workspaces[path]
-      spinner.text = `Loading workspaces (${++progress}/${paths.length})`
-      const version = await getVersion(meta.name, isNext(meta.version))
-      if (gt(meta.version, version)) return path
-      skipped += 1
-    }))).filter(isNonNullable)
+      const task = constraints[meta.name] ??= { ranges: Object.create(null) }
+      task.meta = meta
+      for (const [dep, range] of Object.entries({ ...meta.peerDependencies, ...meta.dependencies })) {
+        const task = constraints[dep] ??= { ranges: Object.create(null) }
+        task.ranges[meta.name] = range
+      }
+    }
+
+    let progress = 0, skipped = 0, hasError = false
+    let total = Object.keys(constraints).length
+    spinner.start(`Checking versions (0/${total})`)
+    paths = []
+    await Promise.all(Object.entries(constraints).map(async ([name, constraint]) => {
+      const versions: string[] = await fetchRemote(name).then((data) => Object.keys(data.versions), () => [])
+      let hasMessage = false
+      if (constraint.meta) {
+        if (versions.includes(constraint.meta.version)) {
+          spinner.warn(`${name}@${constraint.meta.version} already published.`)
+          hasMessage = true
+          skipped += 1
+        } else {
+          versions.push(constraint.meta.version)
+          paths.push(constraint.meta.name)
+        }
+      }
+      for (const [from, range] of Object.entries(constraint.ranges)) {
+        if (!maxSatisfying(versions, range, { includePrerelease: true })) {
+          spinner.fail(`${from} > ${name}@${range} cannot be satisfied.`)
+          hasMessage = true
+          hasError = true
+        }
+      }
+      if (hasMessage) {
+        spinner.start(`Checking versions (${++progress}/${total})`)
+      } else {
+        spinner.text = `Checking versions (${++progress}/${total})`
+      }
+    }))
+    if (hasError) {
+      spinner.fail('Some version checks failed.')
+      process.exit(1)
+    }
     spinner.succeed()
 
-    const total = paths.length
-    if (!argv.debug && total > 0) spinner.start(`Publishing packages (0/${total})`)
+    total = paths.length
+    if (!argv.debug && total > 0) {
+      spinner.start(`Publishing packages (0/${total})`)
+    }
 
     let completed = 0, failed = 0
     await (argv.debug ? serial : parallel)(paths, async (path) => {

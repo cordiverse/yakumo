@@ -47,7 +47,7 @@ export function apply(ctx: Context, config: Config = {}) {
       })
       updateProgress()
       if (!remote) return
-      const newVersion = selectVersion(remote, oldRange)
+      const newVersion = selectVersion(remote, oldRange)!
       const lastestVersion = selectVersion(remote, ctx.yakumo.argv.next ? '' : 'latest')
       try {
         if (!gt(newVersion, oldVersion)) return
