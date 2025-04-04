@@ -1,4 +1,4 @@
-import { Context, Service } from 'cordis'
+import { Context, Inject, Service } from 'cordis'
 import { globby } from 'globby'
 import yargs from 'yargs-parser'
 import detect from 'detect-indent'
@@ -239,17 +239,15 @@ export default class Yakumo extends Service {
     }
   }
 
-  [Service.init]() {
-    const loader = this.ctx.get('loader')
-    if (loader?.config.name !== 'yakumo') return
+  @Inject('loader', true, { await: true })
+  start() {
+    if (this.ctx.loader.config.name !== 'yakumo') return
     const [name, ...args] = process.argv.slice(2)
     if (!name) {
       console.log('yakumo')
       process.exit(0)
     }
-    loader.wait().then(() => {
-      return this.execute(name, ...args)
-    })
+    return this.execute(name, ...args)
   }
 
   async install() {

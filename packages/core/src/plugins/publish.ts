@@ -16,8 +16,7 @@ declare module '../index.js' {
 
 declare module 'cordis' {
   interface Events {
-    'publish/before'(path: string, meta: PackageJson): Awaitable<void>
-    'publish/after'(path: string, meta: PackageJson): Awaitable<void>
+    'yakumo/publish'(path: string, meta: PackageJson, next: () => Awaitable<void>): Promise<void>
   }
 }
 
@@ -80,17 +79,17 @@ export function apply(ctx: Context) {
     }
 
     interface Constraint {
-      meta?: PackageJson
+      path?: string
       ranges: Record<string, string>
     }
     const constraints: Record<string, Constraint> = Object.create(null)
     for (const path of paths) {
       const meta = ctx.yakumo.workspaces[path]
-      const task = constraints[meta.name] ??= { ranges: Object.create(null) }
-      task.meta = meta
+      const constraint = constraints[meta.name] ??= { ranges: Object.create(null) }
+      constraint.path = path
       for (const [dep, range] of Object.entries({ ...meta.peerDependencies, ...meta.dependencies })) {
-        const task = constraints[dep] ??= { ranges: Object.create(null) }
-        task.ranges[meta.name] = range
+        const constraint = constraints[dep] ??= { ranges: Object.create(null) }
+        constraint.ranges[meta.name] = range
       }
     }
 
@@ -101,14 +100,15 @@ export function apply(ctx: Context) {
     await Promise.all(Object.entries(constraints).map(async ([name, constraint]) => {
       const versions: string[] = await fetchRemote(name).then((data) => Object.keys(data.versions), () => [])
       let hasMessage = false
-      if (constraint.meta) {
-        if (versions.includes(constraint.meta.version)) {
-          spinner.warn(`${name}@${constraint.meta.version} already published.`)
+      if (constraint.path) {
+        const meta = ctx.yakumo.workspaces[constraint.path]
+        if (versions.includes(meta.version)) {
+          spinner.warn(`${name}@${meta.version} already published.`)
           hasMessage = true
           skipped += 1
         } else {
-          versions.push(constraint.meta.version)
-          paths.push(constraint.meta.name)
+          versions.push(meta.version)
+          paths.push(constraint.path)
         }
       }
       for (const [from, range] of Object.entries(constraint.ranges)) {
@@ -139,21 +139,22 @@ export function apply(ctx: Context) {
     await (argv.debug ? serial : parallel)(paths, async (path) => {
       const meta = ctx.yakumo.workspaces[path]
       try {
-        await ctx.parallel('publish/before', path, meta)
-        const args = [
-          '--tag', argv.tag ?? (isNext(meta.version) ? 'next' : 'latest'),
-          '--access', argv.access ?? 'public',
-        ]
-        if (argv.registry) args.push('--registry', argv.registry)
-        if (argv.otp) args.push('--otp', argv.otp)
-        const code = await publish(ctx.yakumo.manager, path, meta, args, argv)
-        assert(!code)
-        // sync npm mirror
-        fetch('https://registry-direct.npmmirror.com/' + meta.name + '/sync?sync_upstream=true', {
-          method: 'PUT',
-        }).catch(() => {})
-        await ctx.parallel('publish/after', path, meta)
+        await ctx.waterfall('yakumo/publish', path, meta, async () => {
+          const args = [
+            '--tag', argv.tag ?? (isNext(meta.version) ? 'next' : 'latest'),
+            '--access', argv.access ?? 'public',
+          ]
+          if (argv.registry) args.push('--registry', argv.registry)
+          if (argv.otp) args.push('--otp', argv.otp)
+          const code = await publish(ctx.yakumo.manager, path, meta, args, argv)
+          assert(!code)
+          // sync npm mirror
+          fetch('https://registry-direct.npmmirror.com/' + meta.name + '/sync?sync_upstream=true', {
+            method: 'PUT',
+          }).catch(() => {})
+        })
       } catch (e) {
+        console.log(e)
         failed++
       } finally {
         if (!argv.debug) spinner.text = `Publishing packages (${++completed}/${total})`
