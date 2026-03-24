@@ -1,14 +1,13 @@
 {
   "extends": "./tsconfig.base",
   "compilerOptions": {
-    "baseUrl": ".",
     "paths": {
       "yakumo": [
-        "packages/core/src",
-        "packages/core/src/plugins",
+        "./packages/core/src",
+        "./packages/core/src/plugins",
       ],
-      "yakumo-*": ["packages/*/src"],
-      "@yakumojs/*": ["packages/*/src"],
+      "yakumo-*": ["./packages/*/src"],
+      "@yakumojs/*": ["./packages/*/src"],
     },
   },
   "references": [

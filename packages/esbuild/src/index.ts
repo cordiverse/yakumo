@@ -1,7 +1,8 @@
-import { Context, z } from 'yakumo'
+import { Context } from 'yakumo'
 import { load } from 'tsconfig-utils'
 import dumble from 'dumble'
 import type { BuildOptions } from 'esbuild'
+import z from 'schemastery'
 
 declare module 'yakumo' {
   interface Events {

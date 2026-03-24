@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { start } from 'cordis/cli'
+import { start } from '@cordisjs/cli'
 
 for (let i = 2; i < process.argv.length; i++) {
   if (!process.argv[i].startsWith('--import')) continue

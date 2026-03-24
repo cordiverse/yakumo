@@ -33,14 +33,14 @@
     ]
   },
   "devDependencies": {
-    "esbuild": "^0.25.1",
-    "typescript": "^5.8.2",
-    "yakumo": "^2.0.0-alpha.5"
+    "esbuild": "^0.27.3",
+    "typescript": "^5.9.3",
+    "yakumo": "^2.0.0-alpha.7"
   },
   "peerDependencies": {
     "esbuild": "*",
     "typescript": "*",
-    "yakumo": "^2.0.0-alpha.5"
+    "yakumo": "^2.0.0-alpha.7"
   },
   "dependencies": {
     "dumble": "^0.2.2",
