@@ -1,7 +1,7 @@
 {
   "name": "yakumo-esbuild",
   "description": "Esbuild support for Yakumo",
-  "version": "2.0.0-alpha.2",
+  "version": "2.0.0-alpha.4",
   "type": "module",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
@@ -35,15 +35,16 @@
   "devDependencies": {
     "esbuild": "^0.27.3",
     "typescript": "^5.9.3",
-    "yakumo": "^2.0.0-alpha.7"
+    "yakumo": "^2.0.0-alpha.8"
   },
   "peerDependencies": {
     "esbuild": "*",
     "typescript": "*",
-    "yakumo": "^2.0.0-alpha.7"
+    "yakumo": "^2.0.0-alpha.8"
   },
   "dependencies": {
     "dumble": "^0.2.2",
+    "schemastery": "^3.18.0",
     "tsconfig-utils": "^4.1.1"
   }
 }

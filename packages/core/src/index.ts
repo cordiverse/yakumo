@@ -1,9 +1,8 @@
 import { Context, Inject, Service } from 'cordis'
+import { Input } from '@cordisjs/plugin-cli'
 import { globby } from 'globby'
-import yargs from 'yargs-parser'
 import detect from 'detect-indent'
 import { manager, spawnAsync } from './utils.ts'
-import kleur from 'kleur'
 import { promises as fs, readFileSync } from 'node:fs'
 import { deduplicate, Dict, isNonNullable, makeArray } from 'cosmokit'
 
@@ -13,7 +12,6 @@ export * from './utils.ts'
 declare module 'cordis' {
   interface Context {
     yakumo: Yakumo
-    register(name: string, callback: () => void, options?: Options): void
   }
 
   interface Intercept {
@@ -31,13 +29,6 @@ export interface Manager {
   name: string
   version: string
 }
-
-export interface Arguments extends yargs.Arguments {
-  config: Options
-  _: string[]
-}
-
-export interface Options extends yargs.Options {}
 
 export type DependencyType = 'dependencies' | 'devDependencies' | 'peerDependencies' | 'optionalDependencies'
 
@@ -78,19 +69,9 @@ export namespace Yakumo {
   }
 }
 
-const builtin = [
-  'list',
-  'prepare',
-  'publish',
-  'run',
-  'test',
-  'upgrade',
-  'version',
-]
-
+@Inject('cli')
 export default class Yakumo extends Service {
   cwd: string
-  argv!: Arguments
   manager: Manager
   workspaces!: Dict<PackageJson>
   indent = detect(content).indent
@@ -98,23 +79,22 @@ export default class Yakumo extends Service {
 
   constructor(public ctx: Context, public config: Yakumo.Config) {
     super(ctx, 'yakumo')
-    ctx.mixin('yakumo', ['register'])
     this.cwd = cwd
     this.manager = manager
 
-    for (const name in config.pipeline || {}) {
-      this.register(name, async (...rest: any[]) => {
-        const tasks = config.pipeline![name]
-        for (const task of tasks) {
-          const [name, ...args] = task.split(/\s+/g)
-          await this.execute(name, ...args, ...rest)
-        }
-      })
-    }
-  }
+    ctx.cli.command('yakumo', 'monorepo manager for JavaScript/TypeScript projects')
 
-  register(name: string, callback: () => void, options: Options = {}) {
-    this.commands[name] = [callback, options]
+    // Register pipeline commands (command aliases that run multiple sub-commands)
+    for (const name in config.pipeline || {}) {
+      ctx.cli
+        .command(`yakumo.${name} [...args]`, { unknownOption: 'allow' })
+        .action(async ({ args, options }) => {
+          const tasks = config.pipeline![name]
+          for (const task of tasks) {
+            await ctx.cli.execute(new Input.String(task), args, options)
+          }
+        })
+    }
   }
 
   async initialize() {
@@ -208,46 +188,6 @@ export default class Yakumo extends Service {
   async save(path: string) {
     const content = JSON.stringify(this.workspaces[path], null, this.indent) + '\n'
     await fs.writeFile(`${cwd}${path}/package.json`, content)
-  }
-
-  async execute(name: string, ...args: string[]) {
-    if (!this.commands[name]) {
-      if (builtin.includes(name)) {
-        await this.ctx.get('loader')?.create({
-          name: 'yakumo/' + name,
-        })
-        return this.execute(name, ...args)
-      }
-      console.error(kleur.red(`unknown command: ${name}`))
-      process.exit(1)
-    }
-
-    const [callback, options] = this.commands[name]
-    const index = args.indexOf('--')
-    const rest = index === -1 ? [] : args.splice(index + 1)
-    const argv = yargs(args, options) as Arguments
-    argv['--'] = rest
-    await this.initialize()
-    if (!name.startsWith('yakumo:') && name !== 'run') {
-      await this.execute('run', ...argv._, '--', `yakumo:before:${name}`)
-    }
-    argv.config = options
-    this.argv = argv
-    await callback(...args)
-    if (!name.startsWith('yakumo:') && name !== 'run') {
-      await this.execute('run', ...argv._.slice(0, index === -1 ? undefined : index), '--', `yakumo:after:${name}`)
-    }
-  }
-
-  @Inject('loader', true, { await: true })
-  start() {
-    if (this.ctx.loader.config.name !== 'yakumo') return
-    const [name, ...args] = process.argv.slice(2)
-    if (!name) {
-      console.log('yakumo')
-      process.exit(0)
-    }
-    return this.execute(name, ...args)
   }
 
   async install() {

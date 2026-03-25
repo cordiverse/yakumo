@@ -1,7 +1,5 @@
 #!/usr/bin/env node
 
-import { start } from '@cordisjs/cli'
-
 for (let i = 2; i < process.argv.length; i++) {
   if (!process.argv[i].startsWith('--import')) continue
   const [arg] = process.argv.splice(i, 1)
@@ -13,9 +11,14 @@ for (let i = 2; i < process.argv.length; i++) {
   --i
 }
 
-await start({
+const { Context } = await import('cordis')
+const { Loader } = await import('@cordisjs/plugin-loader')
+
+await new Context().plugin(Loader, {
   name: 'yakumo',
   initial: [
+    { name: '@cordisjs/plugin-cli' },
+    { name: '@cordisjs/plugin-cli-help' },
     { name: 'yakumo' },
     { name: 'yakumo/list' },
     { name: 'yakumo/prepare' },
@@ -26,3 +29,5 @@ await start({
     { name: 'yakumo/version' },
   ],
 })
+
+export {}

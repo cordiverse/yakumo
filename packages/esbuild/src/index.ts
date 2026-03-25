@@ -2,6 +2,7 @@ import { Context } from 'yakumo'
 import { load } from 'tsconfig-utils'
 import dumble from 'dumble'
 import type { BuildOptions } from 'esbuild'
+import type {} from '@cordisjs/plugin-cli'
 import z from 'schemastery'
 
 declare module 'yakumo' {
@@ -10,7 +11,7 @@ declare module 'yakumo' {
   }
 }
 
-export const inject = ['yakumo']
+export const inject = ['yakumo', 'cli']
 
 export interface Config {
   minify: boolean
@@ -21,22 +22,23 @@ export const Config: z<Config> = z.object({
 })
 
 export function apply(ctx: Context, config: Config) {
-  ctx.register('esbuild', async () => {
-    const paths = ctx.yakumo.locate(ctx.yakumo.argv._)
-    await Promise.all(paths.map(async (path) => {
-      const cwd = ctx.yakumo.cwd + path
-      const tsconfig = await load(cwd).catch(() => null)
-      if (!tsconfig) return
-      await dumble(cwd, ctx.yakumo.workspaces[path], tsconfig, {
-        minify: ctx.yakumo.argv.minify ?? config.minify,
-        build: async (options, callback) => {
-          await ctx.waterfall('yakumo/esbuild', path, options, async () => {
-            await callback(options)
-          })
-        },
-      })
-    }))
-  }, {
-    boolean: ['minify'],
-  })
+  ctx.cli.command('esbuild [...packages]')
+    .option('--minify')
+    .action(async ({ args, options }) => {
+      await ctx.yakumo.initialize()
+      const paths = ctx.yakumo.locate(args)
+      await Promise.all(paths.map(async (path) => {
+        const cwd = ctx.yakumo.cwd + path
+        const tsconfig = await load(cwd).catch(() => null)
+        if (!tsconfig) return
+        await dumble(cwd, ctx.yakumo.workspaces[path], tsconfig, {
+          minify: options.minify ?? config.minify,
+          build: async (options, callback) => {
+            await ctx.waterfall('yakumo/esbuild', path, options, async () => {
+              await callback(options)
+            })
+          },
+        })
+      }))
+    })
 }

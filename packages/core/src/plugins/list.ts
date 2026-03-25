@@ -8,7 +8,7 @@ interface Node {
   tree: Dict<Node>
 }
 
-export const inject = ['yakumo']
+export const inject = ['yakumo', 'cli']
 
 export function apply(ctx: Context) {
   function createNode(path: string): Node {
@@ -36,21 +36,24 @@ export function apply(ctx: Context) {
     })
   }
 
-  ctx.register('list', async () => {
-    const paths = Object.keys(ctx.yakumo.workspaces).sort()
-    const root: Node = createNode(paths.shift()!)
-    const total = paths.length
-    let workspaces = 1
-    for (const path of paths) {
-      const node = createNode(path)
-      const parent = findParent(root, path)
-      parent.children.push(node)
-      if (ctx.yakumo.workspaces[path].workspaces) {
-        parent.tree[path] = node
-        workspaces++
+  ctx.cli
+    .command('yakumo.list', 'list all packages')
+    .action(async () => {
+      await ctx.yakumo.initialize()
+      const paths = Object.keys(ctx.yakumo.workspaces).sort()
+      const root: Node = createNode(paths.shift()!)
+      const total = paths.length
+      let workspaces = 1
+      for (const path of paths) {
+        const node = createNode(path)
+        const parent = findParent(root, path)
+        parent.children.push(node)
+        if (ctx.yakumo.workspaces[path].workspaces) {
+          parent.tree[path] = node
+          workspaces++
+        }
       }
-    }
-    printNode(root)
-    console.log(`${total} packages, ${workspaces} workspaces`)
-  })
+      printNode(root)
+      console.log(`${total} packages, ${workspaces} workspaces`)
+    })
 }

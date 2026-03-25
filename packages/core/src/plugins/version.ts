@@ -3,7 +3,7 @@ import { writeFile } from 'node:fs/promises'
 import { readFileSync } from 'node:fs'
 import { gt, SemVer } from 'semver'
 import kleur from 'kleur'
-import { Arguments, confirm, cwd, PackageJson } from '../index.js'
+import { confirm, cwd, PackageJson } from '../index.js'
 
 const bumpTypes = ['major', 'minor', 'patch', 'version', 'reset', 'local'] as const
 type BumpType = typeof bumpTypes[number]
@@ -19,13 +19,13 @@ class Package {
     this.version = this.meta.version
   }
 
-  bump(flag: BumpType, options: any, args: Arguments) {
+  bump(flag: BumpType, options: any) {
     if (flag === 'local') return this.meta.version
     let version = new SemVer(this.meta.version)
     const reset = flag === 'reset'
-    if (args.stable) {
+    if (options.stable) {
       version.prerelease = []
-    } else if (args.prerelease) {
+    } else if (options.prerelease) {
       if (version.prerelease.length) {
         version.prerelease = [{
           alpha: 'beta',
@@ -100,8 +100,8 @@ class Graph {
     return results
   }
 
-  bump(node: Package, flag: BumpType, args: Arguments) {
-    const version = node.bump(flag, this.ctx.yakumo.argv, args)
+  bump(node: Package, flag: BumpType, options: any) {
+    const version = node.bump(flag, options)
     if (!version) return
     const dependents = new Set<Package>()
     this.each((target) => {
@@ -132,8 +132,8 @@ class Graph {
         }
       }
     })
-    if (!this.ctx.yakumo.argv.recursive) return
-    dependents.forEach(dep => this.bump(dep, flag, args))
+    if (!options.recursive) return
+    dependents.forEach(dep => this.bump(dep, flag, options))
   }
 
   async save() {
@@ -154,46 +154,44 @@ class Graph {
   }
 }
 
-export const inject = ['yakumo']
+export const inject = ['yakumo', 'cli']
 
 export function apply(ctx: Context) {
-  ctx.register('version', async () => {
-    if (!ctx.yakumo.argv._.length) {
-      const yes = await confirm('You did not specify any packages to bump. Do you want to bump all the packages?')
-      if (!yes) return
-    }
+  ctx.cli.command('version [...packages]')
+    .option('-r, --recursive')
+    .option('-v, --version <version>')
+    .option('-1, --major')
+    .option('-2, --minor')
+    .option('-3, --patch')
+    .option('-0, --reset')
+    .option('-p, --prerelease')
+    .option('-P, --stable')
+    .option('-l, --local')
+    .action(async ({ args, options }) => {
+      await ctx.yakumo.initialize()
+      if (!args.length) {
+        const yes = await confirm('You did not specify any packages to bump. Do you want to bump all the packages?')
+        if (!yes) return
+      }
 
-    const flags = bumpTypes.filter(type => type in ctx.yakumo.argv)
-    if (flags.length > 1) {
-      console.log(kleur.red('You can only specify one bump type.'))
-      return
-    }
+      const flags = bumpTypes.filter(type => type in options)
+      if (flags.length > 1) {
+        console.log(kleur.red('You can only specify one bump type.'))
+        return
+      }
 
-    const flag = flags[0]
-    if (flag === 'version') {
-      // ensure valid version
-      new SemVer(ctx.yakumo.argv.version)
-    }
+      const flag = flags[0]
+      if (flag === 'version') {
+        // ensure valid version
+        new SemVer(options.version)
+      }
 
-    const graph = new Graph(ctx)
-    const paths = ctx.yakumo.locate(ctx.yakumo.argv._)
-    for (const path of paths) {
-      graph.bump(graph.nodes[path], flag, ctx.yakumo.argv)
-    }
+      const graph = new Graph(ctx)
+      const paths = ctx.yakumo.locate(args)
+      for (const path of paths) {
+        graph.bump(graph.nodes[path], flag, options)
+      }
 
-    await graph.save()
-  }, {
-    alias: {
-      major: ['1'],
-      minor: ['2'],
-      patch: ['3'],
-      reset: ['0'],
-      prerelease: ['p'],
-      stable: ['P'],
-      version: ['v'],
-      recursive: ['r'],
-      local: ['l'],
-    },
-    boolean: ['major', 'minor', 'patch', 'reset', 'local', 'prerelease', 'stable', 'recursive'],
-  })
+      await graph.save()
+    })
 }

@@ -1,4 +1,5 @@
 import * as fs from 'node:fs/promises'
+import type {} from '@cordisjs/plugin-cli'
 import { join } from 'path'
 import { Context, PackageJson } from 'yakumo'
 import { compile, load, TsConfig } from 'tsconfig-utils'
@@ -71,111 +72,112 @@ async function bundleNodes(nodes: Node[]) {
   }
 }
 
-export const inject = ['yakumo']
+export const inject = ['yakumo', 'cli']
 
 export function apply(ctx: Context) {
-  ctx.register('tsc', async () => {
-    const { argv } = ctx.yakumo
-    const paths = ctx.yakumo.locate(ctx.yakumo.argv._)
+  ctx.cli
+    .command('yakumo.tsc [...packages]')
+    .option('--clean', 'clean build files')
+    .action(async ({ args, options }) => {
+      await ctx.yakumo.initialize()
+      const paths = ctx.yakumo.locate(args)
 
-    // build clean
-    if (argv.clean) {
-      const tasks = paths.map(async (path) => {
+      // build clean
+      if (options.clean) {
+        const tasks = paths.map(async (path) => {
+          const fullpath = join(cwd, path)
+          const tsconfig = await load(fullpath)
+          await Promise.allSettled([
+            fs.rm(join(fullpath, tsconfig?.compilerOptions?.outDir || 'lib'), { recursive: true }),
+            fs.rm(join(fullpath, 'tsconfig.tsbuildinfo')),
+          ])
+        })
+        tasks.push(fs.rm(join(cwd, 'tsconfig.temp.json')))
+        await Promise.allSettled(tasks)
+        return
+      }
+
+      // Step 1: initialize nodes
+      const nodes: Record<string, Node> = {}
+      for (const path of paths) {
+        const meta = ctx.yakumo.workspaces[path]
+        if (!meta.main && !meta.exports) continue
         const fullpath = join(cwd, path)
-        const tsconfig = await load(fullpath)
-        await Promise.allSettled([
-          fs.rm(join(fullpath, tsconfig?.compilerOptions?.outDir || 'lib'), { recursive: true }),
-          fs.rm(join(fullpath, 'tsconfig.tsbuildinfo')),
-        ])
-      })
-      tasks.push(fs.rm(join(cwd, 'tsconfig.temp.json')))
-      await Promise.allSettled(tasks)
-      return
-    }
-
-    // Step 1: initialize nodes
-    const nodes: Record<string, Node> = {}
-    for (const path of paths) {
-      const meta = ctx.yakumo.workspaces[path]
-      if (!meta.main && !meta.exports) continue
-      const fullpath = join(cwd, path)
-      try {
-        const config = await load(fullpath)
-        if (config.compilerOptions?.noEmit) continue
-        const files = getFiles(meta, config.compilerOptions?.outDir || 'lib')
-        const bundle = config.compilerOptions?.outFile
-          ? true
-          : config.compilerOptions?.outDir
-            ? false
-            : files.length === 1 && !!meta.exports
-        nodes[meta.name] = { config, bundle, path, meta, prev: [], next: new Set() }
-      } catch (error: any) {
-        if (error.code !== 'ENOENT') throw error
-      }
-    }
-
-    // Step 2: build dependency graph
-    for (const name in nodes) {
-      const { meta } = nodes[name]
-      const deps = {
-        ...meta.dependencies,
-        ...meta.devDependencies,
-      }
-      for (const [key, value] of Object.entries(deps)) {
-        const capture = /^npm:((?:@[^/]+\/)?[^@]+)@.+$/.exec(value)
-        const dep = capture ? capture[1] : key
-        if (!nodes[dep] || meta.yakumo?.tsc?.ignore?.includes(dep)) continue
-        nodes[name].prev.push(dep)
-        nodes[dep].next.add(name)
-      }
-    }
-
-    // Step 3: generate bundle workflow
-    let bundle = false
-    const layers: Node[][] = []
-    while (Object.keys(nodes).length) {
-      const layer: Node[] = []
-      bundle = !bundle
-      let flag = true
-      while (flag) {
-        flag = false
-        for (const name of Object.keys(nodes)) {
-          const node = nodes[name]
-          if (node.next.size || node.bundle === bundle) continue
-          flag = true
-          layer.unshift(node)
-          delete nodes[name]
-          node.prev.forEach((prev) => {
-            nodes[prev].next.delete(name)
-          })
+        try {
+          const config = await load(fullpath)
+          if (config.compilerOptions?.noEmit) continue
+          const files = getFiles(meta, config.compilerOptions?.outDir || 'lib')
+          const bundle = config.compilerOptions?.outFile
+            ? true
+            : config.compilerOptions?.outDir
+              ? false
+              : files.length === 1 && !!meta.exports
+          nodes[meta.name] = { config, bundle, path, meta, prev: [], next: new Set() }
+        } catch (error: any) {
+          if (error.code !== 'ENOENT') throw error
         }
       }
-      if (layers.length && !layer.length) {
-        console.log(nodes)
-        throw new Error('circular dependency detected')
-      }
-      layers.unshift(layer)
-    }
 
-    // Step 4: generate dts files
-    // make sure the number of layers is even
-    if (bundle) layers.unshift([])
-    for (let i = 0; i < layers.length; i += 2) {
-      const bundleTargets = layers[i]
-      const buildTargets = layers[i + 1]
-      const tasks = buildTargets.map(node => atsc.build(join(cwd, node.path)))
-      await Promise.all([
-        prepareBuild(buildTargets),
-        bundleNodes(bundleTargets),
-      ])
-      if (buildTargets.length) {
-        const code = await compile(['-b', 'tsconfig.temp.json', '--listEmittedFiles'])
-        if (code) process.exit(code)
+      // Step 2: build dependency graph
+      for (const name in nodes) {
+        const { meta } = nodes[name]
+        const deps = {
+          ...meta.dependencies,
+          ...meta.devDependencies,
+        }
+        for (const [key, value] of Object.entries(deps)) {
+          const capture = /^npm:((?:@[^/]+\/)?[^@]+)@.+$/.exec(value)
+          const dep = capture ? capture[1] : key
+          if (!nodes[dep] || meta.yakumo?.tsc?.ignore?.includes(dep)) continue
+          nodes[name].prev.push(dep)
+          nodes[dep].next.add(name)
+        }
       }
-      await Promise.all(tasks)
-    }
-    await fs.rm(join(cwd, 'tsconfig.temp.json')).catch(() => {})
-  }, {
-    boolean: ['clean'],
-  })
+
+      // Step 3: generate bundle workflow
+      let bundle = false
+      const layers: Node[][] = []
+      while (Object.keys(nodes).length) {
+        const layer: Node[] = []
+        bundle = !bundle
+        let flag = true
+        while (flag) {
+          flag = false
+          for (const name of Object.keys(nodes)) {
+            const node = nodes[name]
+            if (node.next.size || node.bundle === bundle) continue
+            flag = true
+            layer.unshift(node)
+            delete nodes[name]
+            node.prev.forEach((prev) => {
+              nodes[prev].next.delete(name)
+            })
+          }
+        }
+        if (layers.length && !layer.length) {
+          console.log(nodes)
+          throw new Error('circular dependency detected')
+        }
+        layers.unshift(layer)
+      }
+
+      // Step 4: generate dts files
+      // make sure the number of layers is even
+      if (bundle) layers.unshift([])
+      for (let i = 0; i < layers.length; i += 2) {
+        const bundleTargets = layers[i]
+        const buildTargets = layers[i + 1]
+        const tasks = buildTargets.map(node => atsc.build(join(cwd, node.path)))
+        await Promise.all([
+          prepareBuild(buildTargets),
+          bundleNodes(bundleTargets),
+        ])
+        if (buildTargets.length) {
+          const code = await compile(['-b', 'tsconfig.temp.json', '--listEmittedFiles'])
+          if (code) process.exit(code)
+        }
+        await Promise.all(tasks)
+      }
+      await fs.rm(join(cwd, 'tsconfig.temp.json')).catch(() => {})
+    })
 }
