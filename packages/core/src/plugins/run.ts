@@ -5,7 +5,7 @@ export const inject = ['yakumo', 'cli']
 
 export function apply(ctx: Context) {
   ctx.cli
-    .command('yakumo.run [...packages]')
+    .command('yakumo.run [...packages]', 'Run scripts in packages')
     .action(async ({ args, options }) => {
       await ctx.yakumo.initialize()
       const { cwd } = ctx.yakumo

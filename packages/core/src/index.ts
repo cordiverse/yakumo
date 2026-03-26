@@ -4,6 +4,7 @@ import { globby } from 'globby'
 import detect from 'detect-indent'
 import { manager, spawnAsync } from './utils.ts'
 import { promises as fs, readFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import { deduplicate, Dict, isNonNullable, makeArray } from 'cosmokit'
 
 export * from 'cordis'
@@ -82,7 +83,16 @@ export default class Yakumo extends Service {
     this.cwd = cwd
     this.manager = manager
 
-    ctx.cli.command('yakumo', 'monorepo manager for JavaScript/TypeScript projects')
+    ctx.cli
+      .command('yakumo', 'Manage complex workspaces with ease')
+      .option('-v, --version', 'Show version')
+      .action(({ options }) => {
+        if (options.version) {
+          const require = createRequire(import.meta.url)
+          const { version } = require('../package.json')
+          return `yakumo ${version}`
+        }
+      })
 
     // Register pipeline commands (command aliases that run multiple sub-commands)
     for (const name in config.pipeline || {}) {

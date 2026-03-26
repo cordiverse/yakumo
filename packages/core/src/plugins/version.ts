@@ -157,16 +157,17 @@ class Graph {
 export const inject = ['yakumo', 'cli']
 
 export function apply(ctx: Context) {
-  ctx.cli.command('version [...packages]')
-    .option('-r, --recursive')
-    .option('-v, --version <version>')
-    .option('-1, --major')
-    .option('-2, --minor')
-    .option('-3, --patch')
-    .option('-0, --reset')
-    .option('-p, --prerelease')
-    .option('-P, --stable')
-    .option('-l, --local')
+  ctx.cli
+    .command('version [...packages]', 'Bump package versions')
+    .option('-r, --recursive', 'Bump dependents recursively')
+    .option('-v, --version <version>', 'Set exact version')
+    .option('-1, --major', 'Bump major version')
+    .option('-2, --minor', 'Bump minor version')
+    .option('-3, --patch', 'Bump patch version')
+    .option('-0, --reset', 'Reset version')
+    .option('-p, --prerelease', 'Bump prerelease')
+    .option('-P, --stable', 'Promote to stable')
+    .option('-l, --local', 'Mark as local only')
     .action(async ({ args, options }) => {
       await ctx.yakumo.initialize()
       if (!args.length) {

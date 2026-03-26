@@ -28,7 +28,7 @@ function unparseOptions(options: Record<string, any>): string[] {
 
 export function apply(ctx: Context) {
   ctx.cli
-    .command('yakumo.test [...packages]')
+    .command('yakumo.test [...packages]', 'Run tests in packages')
     .action(async ({ args, options }) => {
       await ctx.yakumo.initialize()
 

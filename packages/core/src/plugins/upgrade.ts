@@ -19,8 +19,9 @@ declare module '../index.js' {
 export const inject = ['yakumo', 'cli']
 
 export function apply(ctx: Context, config: Config = {}) {
-  ctx.cli.command('upgrade [...packages]')
-    .option('--next')
+  ctx.cli
+    .command('upgrade [...packages]', 'Upgrade dependencies')
+    .option('--next', 'Upgrade to incompatible versions')
     .action(async ({ args, options }) => {
       await ctx.yakumo.initialize()
       const paths = ctx.yakumo.locate(args, { includeRoot: true })

@@ -22,8 +22,9 @@ export const Config: z<Config> = z.object({
 })
 
 export function apply(ctx: Context, config: Config) {
-  ctx.cli.command('esbuild [...packages]')
-    .option('--minify')
+  ctx.cli
+    .command('esbuild [...packages]', 'Build packages with esbuild')
+    .option('--minify', 'Minify output')
     .action(async ({ args, options }) => {
       await ctx.yakumo.initialize()
       const paths = ctx.yakumo.locate(args)
