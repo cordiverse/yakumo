@@ -78,7 +78,7 @@ export default class Yakumo extends Service {
   indent = detect(content).indent
   commands: Dict = {}
 
-  constructor(public ctx: Context, public config: Yakumo.Config) {
+  constructor(public ctx: Context, public config: Yakumo.Config = {}) {
     super(ctx, 'yakumo')
     this.cwd = cwd
     this.manager = manager

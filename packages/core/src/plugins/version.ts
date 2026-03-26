@@ -136,13 +136,17 @@ class Graph {
     dependents.forEach(dep => this.bump(dep, flag, options))
   }
 
-  async save() {
+  async save(showDeps = false) {
     let hasUpdate = false
+    let depCount = 0
     await Promise.all(this.each((node) => {
       if (!node.dirty) return
       hasUpdate = true
       if (node.version === node.meta.version) {
-        console.log(`- ${node.meta.name}: dependency updated`)
+        depCount++
+        if (showDeps) {
+          console.log(`- ${node.meta.name}: dependency updated`)
+        }
       } else {
         console.log(`- ${node.meta.name}: ${kleur.cyan(node.meta.version)} => ${kleur.green(node.version)}`)
       }
@@ -150,6 +154,8 @@ class Graph {
     }))
     if (!hasUpdate) {
       console.log('Everything is up-to-date.')
+    } else if (depCount > 0 && !showDeps) {
+      console.log(`- ${depCount} package${depCount > 1 ? 's' : ''} dependency updated`)
     }
   }
 }
@@ -168,6 +174,7 @@ export function apply(ctx: Context) {
     .option('-p, --prerelease', 'Bump prerelease')
     .option('-P, --stable', 'Promote to stable')
     .option('-l, --local', 'Mark as local only')
+    .option('-D, --show-deps', 'Show dependency update details')
     .action(async ({ args, options }) => {
       await ctx.yakumo.initialize()
       if (!args.length) {
@@ -193,6 +200,6 @@ export function apply(ctx: Context) {
         graph.bump(graph.nodes[path], flag, options)
       }
 
-      await graph.save()
+      await graph.save(!!options.showDeps)
     })
 }
