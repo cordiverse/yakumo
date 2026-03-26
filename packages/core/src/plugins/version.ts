@@ -158,9 +158,9 @@ export const inject = ['yakumo', 'cli']
 
 export function apply(ctx: Context) {
   ctx.cli
-    .command('version [...packages]', 'Bump package versions')
+    .command('yakumo.version [...packages]', 'Bump package versions')
     .option('-r, --recursive', 'Bump dependents recursively')
-    .option('-v, --version <version>', 'Set exact version')
+    .option('-v, --version [version]', 'Set exact version')
     .option('-1, --major', 'Bump major version')
     .option('-2, --minor', 'Bump minor version')
     .option('-3, --patch', 'Bump patch version')
@@ -184,7 +184,7 @@ export function apply(ctx: Context) {
       const flag = flags[0]
       if (flag === 'version') {
         // ensure valid version
-        new SemVer(options.version)
+        new SemVer(options.version!)
       }
 
       const graph = new Graph(ctx)

@@ -19,4 +19,5 @@ The name comes from the Japanese word "八雲". In Touhou Project, Yakumo Yukari
 | Extension | Version | Description |
 | ------ | ------ | ----------- |
 | [yakumo-esbuild](./packages/esbuild/) | [![npm](https://img.shields.io/npm/v/yakumo-esbuild?style=flat-square)](https://www.npmjs.com/package/yakumo-esbuild) | execute [esbuild](https://esbuild.github.io) |
+| [yakumo-mocha](./packages/mocha/) | [![npm](https://img.shields.io/npm/v/yakumo-mocha?style=flat-square)](https://www.npmjs.com/package/yakumo-mocha) | execute [mocha](https://mochajs.org) |
 | [yakumo-tsc](./packages/tsc/) | [![npm](https://img.shields.io/npm/v/yakumo-tsc?style=flat-square)](https://www.npmjs.com/package/yakumo-tsc) | compile [TypeScript](https://www.typescriptlang.org) |
