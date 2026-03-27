@@ -76,7 +76,7 @@ export const inject = ['yakumo', 'cli']
 
 export function apply(ctx: Context) {
   ctx.cli
-    .command('yakumo.tsc [...packages]', 'Build packages with tsc')
+    .command('tsc [...packages]', 'Build packages with tsc')
     .option('--clean', 'Clean build files')
     .action(async ({ args, options }) => {
       await ctx.yakumo.initialize()

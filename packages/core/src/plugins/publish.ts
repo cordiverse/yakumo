@@ -51,7 +51,7 @@ export const inject = ['yakumo', 'cli']
 
 export function apply(ctx: Context) {
   ctx.cli
-    .command('yakumo.publish [...packages]', 'Publish packages to npm')
+    .command('publish [...packages]', 'Publish packages to npm')
     .option('--debug', 'Verbose output')
     .option('--tag [tag]', 'npm dist-tag')
     .option('--access [access]', 'npm access level')

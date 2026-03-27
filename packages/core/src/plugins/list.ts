@@ -37,7 +37,7 @@ export function apply(ctx: Context) {
   }
 
   ctx.cli
-    .command('yakumo.list', 'List all packages')
+    .command('list', 'List all packages')
     .action(async () => {
       await ctx.yakumo.initialize()
       const paths = Object.keys(ctx.yakumo.workspaces).sort()

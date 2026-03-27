@@ -84,7 +84,7 @@ export default class Yakumo extends Service {
     this.manager = manager
 
     ctx.cli
-      .command('yakumo', 'Manage complex workspaces with ease')
+      .command('', 'Manage complex workspaces with ease')
       .option('-v, --version', 'Show version')
       .action(({ options }) => {
         if (options.version) {
@@ -97,11 +97,12 @@ export default class Yakumo extends Service {
     // Register pipeline commands (command aliases that run multiple sub-commands)
     for (const name in config.pipeline || {}) {
       ctx.cli
-        .command(`yakumo.${name} [...args]`, { unknownOption: 'allow' })
+        .command(`${name} [...args]`, { unknownOption: 'allow' })
         .action(async ({ args, options }) => {
           const tasks = config.pipeline![name]
           for (const task of tasks) {
-            await ctx.cli.execute(new Input.String(task), args, options)
+            const output = await ctx.cli.execute(new Input.String(task), args, options)
+            if (output) console.log(output)
           }
         })
     }

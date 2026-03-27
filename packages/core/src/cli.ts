@@ -17,7 +17,7 @@ const { Loader } = await import('@cordisjs/plugin-loader')
 await new Context().plugin(Loader, {
   name: 'yakumo',
   initial: [
-    { name: '@cordisjs/plugin-cli' },
+    { name: '@cordisjs/plugin-cli', config: { name: 'yakumo' } },
     { name: '@cordisjs/plugin-cli-help' },
     { name: 'yakumo' },
     { name: 'yakumo/list' },

@@ -164,7 +164,7 @@ export const inject = ['yakumo', 'cli']
 
 export function apply(ctx: Context) {
   ctx.cli
-    .command('yakumo.version [...packages]', 'Bump package versions')
+    .command('version [...packages]', 'Bump package versions')
     .option('-r, --recursive', 'Bump dependents recursively')
     .option('-v, --version [version]', 'Set exact version')
     .option('-1, --major', 'Bump major version')

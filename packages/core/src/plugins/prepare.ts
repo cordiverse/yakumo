@@ -5,7 +5,7 @@ export const inject = ['yakumo', 'cli']
 
 export function apply(ctx: Context) {
   ctx.cli
-    .command('yakumo.prepare [...packages]', 'Prepare workspace configuration')
+    .command('prepare [...packages]', 'Prepare workspace configuration')
     .option('-c, --clean', 'Clean removed workspaces')
     .action(async ({ options }) => {
       await ctx.yakumo.initialize()

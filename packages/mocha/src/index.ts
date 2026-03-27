@@ -7,7 +7,7 @@ export const inject = ['yakumo', 'cli']
 
 export function apply(ctx: Context) {
   ctx.cli
-    .command('yakumo.mocha [...packages]', 'Run tests with mocha')
+    .command('mocha [...packages]', 'Run tests with mocha')
     .action(async ({ args }) => {
       await ctx.yakumo.initialize()
 
