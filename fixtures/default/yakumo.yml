@@ -1,7 +1,6 @@
 - name: '@cordisjs/plugin-cli'
   config:
     name: yakumo
-- name: '@cordisjs/plugin-cli-help'
 - name: yakumo
   config:
     pipeline:

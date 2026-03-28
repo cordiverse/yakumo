@@ -14,20 +14,25 @@ for (let i = 2; i < process.argv.length; i++) {
 const { Context } = await import('cordis')
 const { Loader } = await import('@cordisjs/plugin-loader')
 
-await new Context().plugin(Loader, {
-  name: 'yakumo',
-  initial: [
-    { name: '@cordisjs/plugin-cli', config: { name: 'yakumo' } },
-    { name: '@cordisjs/plugin-cli-help' },
-    { name: 'yakumo' },
-    { name: 'yakumo/list' },
-    { name: 'yakumo/prepare' },
-    { name: 'yakumo/publish' },
-    { name: 'yakumo/run' },
-    { name: 'yakumo/test' },
-    { name: 'yakumo/upgrade' },
-    { name: 'yakumo/version' },
-  ],
+const ctx = new Context()
+await ctx.plugin(Loader)
+
+await ctx.loader.create({
+  name: '@cordisjs/plugin-include',
+  config: {
+    path: './yakumo.yml',
+    initial: [
+      { name: '@cordisjs/plugin-cli', config: { name: 'yakumo' } },
+      { name: 'yakumo' },
+      { name: 'yakumo/list' },
+      { name: 'yakumo/prepare' },
+      { name: 'yakumo/publish' },
+      { name: 'yakumo/run' },
+      { name: 'yakumo/test' },
+      { name: 'yakumo/upgrade' },
+      { name: 'yakumo/version' },
+    ],
+  },
 })
 
 export {}
