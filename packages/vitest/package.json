@@ -1,7 +1,7 @@
 {
   "name": "yakumo-vitest",
   "description": "Vitest support for Yakumo",
-  "version": "1.3.1",
+  "version": "1.3.3",
   "type": "module",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",

@@ -1,12 +1,15 @@
 import { Context } from 'yakumo'
 import type {} from '@cordisjs/plugin-cli'
 import { startVitest, Vitest } from 'vitest/node'
+import { defaultExclude } from 'vitest/config'
 import tsconfigPaths from 'vite-tsconfig-paths'
 import { globby } from 'globby'
 import { existsSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 
 export const inject = ['yakumo', 'cli']
+
+const EXCLUDE = [...defaultExclude, '**/.claude/**']
 
 const CONFIG_NAMES = [
   'vitest.config.ts', 'vitest.config.js',
@@ -56,7 +59,7 @@ export function apply(ctx: Context) {
         cwd: ctx.yakumo.cwd,
         onlyFiles: true,
         absolute: true,
-        ignore: ['**/node_modules/**'],
+        ignore: EXCLUDE,
       })
 
       // Group spec files by the nearest ancestor vitest.config.*. Each group
@@ -82,6 +85,7 @@ export function apply(ctx: Context) {
           testTimeout: options.testTimeout,
           passWithNoTests: true,
           root,
+          exclude: EXCLUDE,
           ...options.coverage ? {
             coverage: {
               enabled: true,
@@ -103,6 +107,7 @@ export function apply(ctx: Context) {
         }
 
         totalFailed += vitest.state.getCountOfFailedTests()
+        totalFailed += vitest.state.getUnhandledErrors().length
         await vitest.close()
       }
 
