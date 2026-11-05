@@ -17,7 +17,7 @@ export function apply(ctx: Context) {
 
   function findParent(root: Node, path: string) {
     for (const prefix in root.tree) {
-      if (path.startsWith(prefix)) return findParent(root.tree[prefix], path)
+      if (path.startsWith(prefix + '/')) return findParent(root.tree[prefix], path)
     }
     return root
   }
@@ -48,7 +48,7 @@ export function apply(ctx: Context) {
         const node = createNode(path)
         const parent = findParent(root, path)
         parent.children.push(node)
-        if (ctx.yakumo.workspaces[path].workspaces) {
+        if (ctx.yakumo.workspaceTree.groups[path]) {
           parent.tree[path] = node
           workspaces++
         }

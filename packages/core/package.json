@@ -9,6 +9,7 @@
   "exports": {
     ".": "./lib/index.js",
     "./cli": "./lib/cli.js",
+    "./lock": "./lib/lock.js",
     "./src/*": "./src/*",
     "./package.json": "./package.json"
   },

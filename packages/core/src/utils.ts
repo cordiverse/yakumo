@@ -32,12 +32,6 @@ export function spawnAsync(args: string[], options: SpawnOptions = {}) {
 
 export const manager = which()!
 
-export async function install() {
-  const agent = manager?.name || 'npm'
-  const code = await spawnAsync([agent, 'install'])
-  if (code) process.exit(code)
-}
-
 let registryTask: Promise<string | undefined>
 
 export async function fetchRemote(name: string) {

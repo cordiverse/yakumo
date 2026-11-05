@@ -1,11 +1,13 @@
 import { Context, Inject, Service } from 'cordis'
 import { Input } from '@cordisjs/plugin-cli'
-import { globby } from 'globby'
 import detect from 'detect-indent'
 import { manager, spawnAsync } from './utils.ts'
 import { promises as fs, readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
-import { deduplicate, Dict, isNonNullable, makeArray } from 'cosmokit'
+import { deduplicate, Dict, makeArray } from 'cosmokit'
+import { detectManager, discoverWorkspaces, isBerry, WorkspaceTree } from './workspace.ts'
+import { LockOptions, syncLockfiles } from './lock.ts'
+import * as lock from './plugins/lock.ts'
 import * as list from './plugins/list.ts'
 import * as prepare from './plugins/prepare.ts'
 import * as publish from './plugins/publish.ts'
@@ -31,7 +33,9 @@ export const cwd = process.cwd()
 const content = readFileSync(`${cwd}/package.json`, 'utf8')
 export const meta: PackageJson = JSON.parse(content)
 
-export interface PackageConfig {}
+export interface PackageConfig {
+  lockfiles?: Pick<LockOptions, 'repositories' | 'strict'>
+}
 
 export interface Manager {
   name: string
@@ -82,6 +86,7 @@ export default class Yakumo extends Service {
   cwd: string
   manager: Manager
   workspaces!: Dict<PackageJson>
+  workspaceTree!: WorkspaceTree
   indent = detect(content).indent
   commands: Dict = {}
 
@@ -115,6 +120,7 @@ export default class Yakumo extends Service {
     }
 
     list.apply(ctx)
+    lock.apply(ctx)
     prepare.apply(ctx)
     publish.apply(ctx)
     run.apply(ctx)
@@ -124,20 +130,9 @@ export default class Yakumo extends Service {
   }
 
   async initialize() {
-    const folders = await globby(meta.workspaces || [], {
-      cwd,
-      onlyDirectories: true,
-      expandDirectories: false,
-    })
-    folders.unshift('')
-
-    this.workspaces = Object.fromEntries((await Promise.all(folders.map(async (path) => {
-      if (path) path = '/' + path
-      try {
-        const content = await fs.readFile(`${cwd}${path}/package.json`, 'utf8')
-        return [path, JSON.parse(content)] as [string, PackageJson]
-      } catch {}
-    }))).filter(isNonNullable))
+    this.manager = await detectManager(this.cwd, manager)
+    this.workspaceTree = await discoverWorkspaces(this.cwd, { recursive: isBerry(this.manager) })
+    this.workspaces = this.workspaceTree.packages
   }
 
   resolveIntercept(): Yakumo.Intercept {
@@ -163,7 +158,7 @@ export default class Yakumo extends Service {
 
   locate(name: string | string[], options: LocateOptions = {}): string[] {
     const { alias = {}, exclude } = this.resolveIntercept()
-    const defaultFilter = options.filter || ((meta) => options.includeRoot || !meta.workspaces)
+    const defaultFilter = options.filter || ((meta, path) => options.includeRoot || !this.workspaceTree.groups[path])
     const filter = (meta: PackageJson, path: string) => {
       return defaultFilter(meta, path) && !exclude?.some((pattern) => {
         return new RegExp('^/' + pattern.replace(/\*/g, '[^/]+') + '$').test(path)
@@ -232,6 +227,14 @@ export default class Yakumo extends Service {
   async save(path: string) {
     const content = JSON.stringify(this.workspaces[path], null, this.indent) + '\n'
     await fs.writeFile(`${cwd}${path}/package.json`, content)
+  }
+
+  async syncLocks(options: LockOptions = {}) {
+    return syncLockfiles(this.cwd, this.manager, {
+      ...this.workspaces[''].yakumo?.lockfiles,
+      onProgress: message => console.log(message),
+      ...options,
+    })
   }
 
   async install() {
