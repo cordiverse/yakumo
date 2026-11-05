@@ -4,6 +4,10 @@ on:
   push:
   pull_request:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && github.run_id || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lint:
     runs-on: ubuntu-latest
@@ -14,7 +18,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v6
         with:
-          node-version: 24
+          node-version: 26
       - name: Enable Corepack
         run: corepack enable
       - name: Install
@@ -35,7 +39,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
-          node-version: 24
+          node-version: 26
       - name: Enable Corepack
         run: corepack enable
       - name: Install
@@ -57,7 +61,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node-version: [22, 24]
+        node-version: [24, 26]
 
     steps:
       - name: Check out
@@ -72,9 +76,3 @@ jobs:
         run: yarn --no-immutable
       - name: Unit Test
         run: yarn test:json
-      - name: Report Coverage
-        uses: codecov/codecov-action@v6
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./coverage/coverage-final.json
-          name: codecov

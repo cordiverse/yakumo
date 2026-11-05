@@ -33,7 +33,7 @@
     ]
   },
   "devDependencies": {
-    "esbuild": "^0.28.0",
+    "esbuild": "^0.28.2",
     "typescript": "^5.9.3",
     "yakumo": "^3.2.1"
   },
@@ -45,6 +45,6 @@
   "dependencies": {
     "dumble": "^0.2.3",
     "schemastery": "^3.18.0",
-    "tsconfig-utils": "^4.1.1"
+    "tsconfig-utils": "^4.2.0"
   }
 }
