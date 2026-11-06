@@ -36,12 +36,12 @@
   "peerDependencies": {
     "vite": "^6 || ^7",
     "vitest": "^4",
-    "yakumo": "^3.2.1"
+    "yakumo": "^3.3.0"
   },
   "devDependencies": {
     "vite": "^7.3.7",
     "vitest": "^4.1.12",
-    "yakumo": "^3.2.1"
+    "yakumo": "^3.3.0"
   },
   "dependencies": {
     "globby": "^14.1.0",
