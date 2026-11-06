@@ -67,7 +67,7 @@ async function fixture(name: string, external = false) {
     __metadata: { version: 9 },
     'semver@npm:^7.7.4': { version: '7.7.4', resolution: 'semver@npm:7.7.4', bin: { semver: 'bin/semver.js' }, languageName: 'node', linkType: 'hard' },
   }))
-  await write(resolve(root, 'repos/a/package.json'), { name: 'repo-a', private: true, workspaces: ['packages/*', 'external/*'] })
+  await write(resolve(root, 'repos/a/package.json'), { name: 'repo-a', private: true, packageManager: `yarn@${version}`, workspaces: ['packages/*', 'external/*'] })
   await write(resolve(root, 'repos/a/.yarnrc.yml'), 'nodeLinker: node-modules\n')
   await write(resolve(root, 'repos/a/.gitignore'), '/external\n')
   await execute('git', ['init', '-q'], { cwd: resolve(root, 'repos/a') })

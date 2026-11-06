@@ -15,10 +15,12 @@ jobs:
     steps:
       - name: Check out
         uses: actions/checkout@v6
-      - name: Set up Node
+      - name: Setup Node
         uses: actions/setup-node@v6
         with:
           node-version: 26
+      - name: Install Corepack
+        run: npm install -g --force corepack@latest
       - name: Enable Corepack
         run: corepack enable
       - name: Install
@@ -40,6 +42,8 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 26
+      - name: Install Corepack
+        run: npm install -g --force corepack@latest
       - name: Enable Corepack
         run: corepack enable
       - name: Install
@@ -66,10 +70,12 @@ jobs:
     steps:
       - name: Check out
         uses: actions/checkout@v6
-      - name: Set up Node
+      - name: Setup Node
         uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node-version }}
+      - name: Install Corepack
+        run: npm install -g --force corepack@latest
       - name: Enable Corepack
         run: corepack enable
       - name: Install

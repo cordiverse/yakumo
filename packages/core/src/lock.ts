@@ -55,8 +55,6 @@ export function isolatedEnv(extra?: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
     ...extra,
     YARN_ENABLE_SCRIPTS: 'false',
     YARN_ENABLE_IMMUTABLE_INSTALLS: 'false',
-    // The executable has already been selected; never let a shadow manifest switch it.
-    COREPACK_ENABLE_PROJECT_SPEC: '0',
   }
   for (const key of Object.keys(env)) {
     if (/^YARN_(PLUGINS|PROJECT_CWD)$/i.test(key)) delete env[key]
@@ -142,10 +140,12 @@ function assertPortable(tree: WorkspaceTree) {
   }
 }
 
-async function stage(tree: WorkspaceTree, directory: string) {
+async function stage(tree: WorkspaceTree, directory: string, version: string) {
   assertPortable(tree)
   for (const [path, original] of Object.entries(tree.packages)) {
     const meta = structuredClone(original) as PackageJson
+    // The staging directory has no ancestor manifest, so Corepack resolves `yarn` from this field.
+    if (!path) (meta as any).packageManager ||= `yarn@${version}`
     for (const specifier of Object.values<string>((meta as any).resolutions || {})) {
       assertRegistrySpecifier(specifier, `${tree.root + path}: resolutions`)
     }
@@ -225,7 +225,7 @@ export async function syncLockfiles(root: string, manager?: Manager, options: Lo
         if (targetManager.name !== 'yarn' || !/^4\./.test(targetManager.version)) {
           throw new UnsupportedError(`${standalone.root}: standalone lockfile generation requires Yarn 4`)
         }
-        await stage(standalone, directory)
+        await stage(standalone, directory, targetManager.version)
       } catch (error) {
         // Configuration-level limitations skip one repository; resolution failures still abort.
         if (!(error instanceof UnsupportedError) || options.strict) throw error
