@@ -1,7 +1,7 @@
 import { Context, Inject, Service } from 'cordis'
 import { Input } from '@cordisjs/plugin-cli'
 import detect from 'detect-indent'
-import { manager, spawnAsync } from './utils.ts'
+import { getRegistry, spawnAsync } from './utils.ts'
 import { promises as fs, readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { deduplicate, Dict, makeArray } from 'cosmokit'
@@ -84,16 +84,16 @@ export namespace Yakumo {
 @Inject('cli')
 export default class Yakumo extends Service {
   cwd: string
-  manager: Manager
+  manager!: Manager
   workspaces!: Dict<PackageJson>
   workspaceTree!: WorkspaceTree
   indent = detect(content).indent
   commands: Dict = {}
+  private registryTask?: Promise<string>
 
   constructor(public ctx: Context, public config: Yakumo.Config = {}) {
     super(ctx, 'yakumo')
     this.cwd = cwd
-    this.manager = manager
 
     ctx.cli
       .command('', 'Manage complex workspaces with ease')
@@ -130,7 +130,7 @@ export default class Yakumo extends Service {
   }
 
   async initialize() {
-    this.manager = await detectManager(this.cwd, manager)
+    this.manager = await detectManager(this.cwd)
     this.workspaceTree = await discoverWorkspaces(this.cwd, discoverOptions(this.manager))
     this.workspaces = this.workspaceTree.packages
   }
@@ -245,9 +245,13 @@ export default class Yakumo extends Service {
     })
   }
 
+  /** Registry URL of the package manager, read once per instance. */
+  registry() {
+    return this.registryTask ||= getRegistry(this.manager, this.cwd)
+  }
+
   async install() {
-    const agent = this.manager?.name || 'npm'
-    const code = await spawnAsync([agent, 'install'], { cwd: this.cwd })
+    const code = await spawnAsync([this.manager.name, 'install'], { cwd: this.cwd })
     if (code) process.exit(code)
   }
 }

@@ -1,5 +1,5 @@
 import { Context } from 'cordis'
-import { manager, spawnAsync } from '../index.js'
+import { spawnAsync } from '../index.js'
 
 export const inject = ['yakumo', 'cli']
 
@@ -17,8 +17,7 @@ export function apply(ctx: Context) {
         return !!ctx.yakumo.workspaces[path].scripts?.[command]
       })
       for (const path of paths) {
-        const agent = manager?.name || 'npm'
-        await spawnAsync([agent, 'run', command, ...rest], { cwd: cwd + path })
+        await spawnAsync([ctx.yakumo.manager.name, 'run', command, ...rest], { cwd: cwd + path })
       }
     })
 }

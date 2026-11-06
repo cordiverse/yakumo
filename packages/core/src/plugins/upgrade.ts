@@ -46,7 +46,7 @@ export function apply(ctx: Context, config: Config = {}) {
         const [dep, oldRange] = request.split(':')
         if (names.includes(dep)) return updateProgress()
         const oldVersion = oldRange.slice(1)
-        const remote = await fetchRemote(dep).catch(() => {
+        const remote = await ctx.yakumo.registry().then(registry => fetchRemote(dep, registry)).catch(() => {
           console.log(`- ${kleur.red(dep)}: failed to fetch`)
         })
         updateProgress()
@@ -80,7 +80,7 @@ export function apply(ctx: Context, config: Config = {}) {
 
       console.log(output.sort().join('\n'))
 
-      const agent = manager?.name || 'npm'
+      const agent = manager.name
       const installArgs: string[] = agent === 'yarn' ? [] : ['install']
       const code = await spawnAsync([agent, ...installArgs])
       if (code) process.exit(code)

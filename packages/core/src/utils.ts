@@ -1,10 +1,11 @@
 import ora from 'ora'
 import prompts from 'prompts'
-import which from 'which-pm-runs'
-import { spawn, SpawnOptions } from 'node:child_process'
-import getRegistry from 'get-registry'
+import { execFile, spawn, SpawnOptions } from 'node:child_process'
+import { promisify } from 'node:util'
 import semver from 'semver'
 import type { Manifest } from '@npm/types'
+import { isBerry } from './workspace.ts'
+import type { Manager } from './index.ts'
 
 export async function confirm(message: string) {
   const { value } = await prompts({
@@ -30,12 +31,17 @@ export function spawnAsync(args: string[], options: SpawnOptions = {}) {
   })
 }
 
-export const manager = which()!
+/** Read the registry URL from the configuration of a package manager in a directory. */
+export async function getRegistry(manager: Manager, cwd?: string) {
+  const key = isBerry(manager) ? 'npmRegistryServer' : 'registry'
+  const { stdout } = await promisify(execFile)(manager.name, ['config', 'get', key], { cwd })
+  const registry = stdout.trim()
+  if (!URL.canParse(registry)) throw new Error(`Invalid registry from ${manager.name} config get ${key}: ${registry}`)
+  // Package names resolve relative to the registry URL, which therefore ends with a slash.
+  return registry.endsWith('/') ? registry : registry + '/'
+}
 
-let registryTask: Promise<string | undefined>
-
-export async function fetchRemote(name: string) {
-  const registry = await (registryTask ||= getRegistry())
+export async function fetchRemote(name: string, registry: string) {
   const packageUrl = new URL(encodeURIComponent(name).replace(/^%40/, '@'), registry)
   const response = await fetch(packageUrl, {
     headers: {

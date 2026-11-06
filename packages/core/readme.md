@@ -24,7 +24,7 @@ Yakumo can maintain a standalone lockfile for each nested repository while depen
 | npm | 9 or later | `package-lock.json` (`lockfileVersion` 3) |
 | pnpm | 9 or later | `pnpm-lock.yaml` (`lockfileVersion` 9.0) |
 
-Synchronization fails when the outer root uses a version outside this table. With Yarn Classic, `yakumo postinstall` performs no action. Add the following lifecycle script to the root `package.json`:
+Yakumo reads the package manager from the `packageManager` field of the root `package.json`, such as `"packageManager": "pnpm@12.18.0"`, and fails when the field is missing, names another package manager, or does not specify an exact version. Synchronization fails when the root uses a version outside this table. With Yarn Classic, `yakumo postinstall` performs no action. Add the following lifecycle script to the root `package.json`:
 
 ```json
 {
@@ -72,7 +72,7 @@ For each target, Yakumo copies the manifests and the package manager configurati
 
 The root lockfile takes precedence over the previous repository lockfile. For Yarn, the seed contains the registry records of both. For npm, the seed keeps the hoisted registry packages of the root and moves the packages installed below the repository to the corresponding locations. For pnpm, the seed maps the importers of the repository projects from the root lockfile. A dependency that the root links to a workspace of another repository is taken from the previous repository lockfile. Packages that the repository does not use are removed from the result.
 
-A repository that pins another version of the same package manager through `packageManager` or `devEngines.packageManager` is resolved with that version through Corepack. Workspace manifests that are ignored by Git are excluded.
+A repository without `packageManager` uses the package manager of the root. A repository that pins another version of the same package manager through `packageManager` is resolved with that version through Corepack. Workspace manifests that are ignored by Git are excluded.
 
 Lockfiles are written only after every target has been resolved. The root lockfile and the manifests are never modified.
 

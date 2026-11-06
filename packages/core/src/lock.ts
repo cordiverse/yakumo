@@ -160,11 +160,12 @@ export async function syncLockfiles(root: string, manager?: Manager, options: Lo
       let targetManager: Manager
       let projects: string[]
       try {
-        targetManager = await detectManager(root + path, manager)
+        targetManager = await detectManager(root + path, manager).catch((error) => {
+          throw new UnsupportedError(error.message)
+        })
         if (targetManager.name !== manager.name) {
           throw new UnsupportedError(`${root + path}: repository uses ${targetManager.name}, but the installation root uses ${manager.name}`)
         }
-        targetManager = { ...targetManager, version: targetManager.version || manager.version }
         if (!adapter.supports(targetManager.version)) {
           throw new UnsupportedError(`${root + path}: standalone lockfile generation requires ${adapter.versions}`)
         }

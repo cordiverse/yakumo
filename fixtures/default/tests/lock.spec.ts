@@ -12,7 +12,7 @@ import Yakumo, { Context } from '../../../packages/core/src/index.ts'
 import { parseSyml, stringifySyml } from '@yarnpkg/parsers'
 import { parse as parseYaml, parseAllDocuments } from 'yaml'
 import { syncLockfiles, seedNpm, seedPnpm, seedYarn } from '../../../packages/core/src/lock.ts'
-import { discoverWorkspaces, writePnpmPackages } from '../../../packages/core/src/workspace.ts'
+import { detectManager, discoverWorkspaces, writePnpmPackages } from '../../../packages/core/src/workspace.ts'
 
 const execute = promisify(execFile)
 const temporary = await fs.mkdtemp(resolve(tmpdir(), 'yakumo-lock-test-'))
@@ -124,6 +124,21 @@ describe('workspace discovery', () => {
     expect(Object.keys((await discoverWorkspaces(root, { npm: true })).packages)).toEqual(['', '/packages/extra', '/packages/foo'])
     await write(resolve(root, 'package.json'), { workspaces: ['!!packages/*'] })
     expect(Object.keys((await discoverWorkspaces(root, { npm: true })).packages)).toEqual(['', '/packages/extra', '/packages/foo', '/packages/skip'])
+  })
+
+  it('reads the package manager from packageManager only', async () => {
+    const root = resolve(temporary, 'detection')
+    const detect = async (meta: object) => {
+      await write(resolve(root, 'package.json'), { name: 'root', ...meta })
+      return detectManager(root)
+    }
+    await write(resolve(root, 'pnpm-lock.yaml'), 'lockfileVersion: \'9.0\'\n')
+    expect(await detect({ packageManager: 'pnpm@12.18.0+sha512.abc' })).toEqual({ name: 'pnpm', version: '12.18.0' })
+    await expect(detect({ devEngines: { packageManager: { name: 'pnpm' } } })).rejects.toThrow('missing packageManager')
+    await expect(detect({ packageManager: 'bun@1.3.0' })).rejects.toThrow('unsupported package manager bun')
+    await expect(detect({ packageManager: 'pnpm@^12' })).rejects.toThrow('invalid packageManager')
+    await write(resolve(root, 'package.json'), { name: 'root' })
+    expect(await detectManager(root, { name: 'npm', version: '11.0.0' })).toEqual({ name: 'npm', version: '11.0.0' })
   })
 
   it('reads pnpm groups from pnpm-workspace.yaml and rewrites only their patterns', async () => {
@@ -358,7 +373,7 @@ describe('npm lockfiles', async () => {
 
   async function fixture(name: string) {
     const root = resolve(temporary, name)
-    await write(resolve(root, 'package.json'), { name: 'root', private: true, workspaces: ['repos/*', 'repos/a/packages/*', 'repos/a/external/*'] })
+    await write(resolve(root, 'package.json'), { name: 'root', private: true, packageManager: `npm@${version}`, workspaces: ['repos/*', 'repos/a/packages/*', 'repos/a/external/*'] })
     await write(resolve(root, 'repos/a/package.json'), { name: 'repo-a', private: true, workspaces: ['packages/*', 'external/*'] })
     await layout(root, '^1.0.0')
     await install(root, '--package-lock-only')

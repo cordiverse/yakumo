@@ -86,24 +86,23 @@ export function isBerry(manager?: Manager) {
   return manager?.name === 'yarn' && !manager.version.startsWith('1.')
 }
 
-const lockfiles = { 'yarn.lock': 'yarn', 'pnpm-lock.yaml': 'pnpm', 'pnpm-workspace.yaml': 'pnpm', 'package-lock.json': 'npm' }
+const managers = ['npm', 'pnpm', 'yarn']
 
 /**
- * Detect the package manager of a project from `packageManager`, then `devEngines.packageManager`.
- * A `devEngines` range yields an empty version. Without either field, the fallback applies;
- * without a fallback, the lockfile or workspace file in the directory decides.
+ * Read the package manager of a project from the `packageManager` field of its manifest.
+ * Without the field, the fallback applies; without a fallback, detection fails.
  */
 export async function detectManager(root: string, fallback?: Manager): Promise<Manager> {
   const meta = JSON.parse(await fs.readFile(resolve(root, 'package.json'), 'utf8'))
-  const match = /^(yarn|pnpm|npm)@([^+]+)/.exec(meta.packageManager || '')
-  if (match) return { name: match[1], version: match[2] }
-  const engine = [meta.devEngines?.packageManager].flat()[0]
-  if (['yarn', 'pnpm', 'npm'].includes(engine?.name)) return { name: engine.name, version: valid(engine.version) || '' }
-  if (fallback) return fallback
-  for (const [filename, name] of Object.entries(lockfiles)) {
-    if (await readOptional(resolve(root, filename)) !== undefined) return { name, version: '' }
+  const value = meta.packageManager
+  if (value === undefined) {
+    if (fallback) return fallback
+    throw new Error(`${root}/package.json: missing packageManager, such as "packageManager": "npm@11.0.0"`)
   }
-  return { name: 'npm', version: '' }
+  const match = typeof value === 'string' ? /^([^@]+)@([^+]+)(\+.*)?$/.exec(value) : null
+  if (!match || !valid(match[2])) throw new Error(`${root}/package.json: invalid packageManager ${JSON.stringify(value)}; expected <name>@<version>`)
+  if (!managers.includes(match[1])) throw new Error(`${root}/package.json: unsupported package manager ${match[1]}; expected ${managers.join(', ')}`)
+  return { name: match[1], version: match[2] }
 }
 
 export async function readPnpmWorkspace(directory: string): Promise<Record<string, any> | undefined> {

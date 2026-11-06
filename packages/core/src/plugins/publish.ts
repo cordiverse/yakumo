@@ -34,7 +34,7 @@ function isBerry(manager: Manager) {
 async function publish(manager: Manager, path: string, meta: PackageJson, args: string[], debug?: boolean) {
   // console.log(`publishing ${name}@${version} ...`)
   if (!isBerry(manager)) {
-    args = [manager?.name || 'npm', 'publish', join(cwd, path), '--color', ...args]
+    args = [manager.name, 'publish', join(cwd, path), '--color', ...args]
     return await spawnAsync(args, { stdio: debug ? 'inherit' : 'ignore' })
   }
   return await spawnAsync(['yarn', 'workspace', meta.name, 'npm', 'publish', ...args], { stdio: debug ? 'inherit' : 'ignore' })
@@ -114,7 +114,7 @@ export function apply(ctx: Context) {
       spinner.start(`Checking versions (0/${total})`)
       paths = []
       await Promise.all(Object.entries(constraints).map(async ([name, constraint]) => {
-        const versions: string[] = await fetchRemote(name).then((data) => Object.keys(data.versions), () => [])
+        const versions: string[] = await ctx.yakumo.registry().then(registry => fetchRemote(name, registry)).then((data) => Object.keys(data.versions), () => [])
         let hasMessage = false
         if (constraint.path) {
           const meta = ctx.yakumo.workspaces[constraint.path]
