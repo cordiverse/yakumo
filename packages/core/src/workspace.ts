@@ -1,6 +1,7 @@
 import { promises as fs } from 'node:fs'
 import { isAbsolute, relative, resolve } from 'node:path'
 import { globby } from 'globby'
+import picomatch from 'picomatch'
 import { valid } from 'semver'
 import { parseDocument } from 'yaml'
 import type { Manager, PackageJson } from './index.ts'
@@ -24,10 +25,48 @@ export interface DiscoverOptions {
   recursive?: boolean
   /** Read workspace patterns from `pnpm-workspace.yaml` instead of the `workspaces` field. */
   pnpm?: boolean
+  /** Apply the order-dependent exclusions of npm. */
+  npm?: boolean
 }
 
 export function discoverOptions(manager?: Manager): DiscoverOptions {
-  return { recursive: isBerry(manager), pnpm: manager?.name === 'pnpm' }
+  return { recursive: isBerry(manager), pnpm: manager?.name === 'pnpm', npm: manager?.name === 'npm' }
+}
+
+/**
+ * Split workspace patterns into included patterns and exclusions. Yarn and pnpm apply every
+ * exclusion to every pattern of the group. npm removes a leading `./` or `/`, treats an odd
+ * number of leading `!` as an exclusion, cancels an exclusion that a later pattern matches as
+ * a path, drops the patterns that a remaining exclusion matches as a path, and applies the
+ * remaining exclusions to every pattern.
+ */
+export function splitPatterns(patterns: string[], npm = false) {
+  let positive: string[] = []
+  let negative: string[] = []
+  for (let pattern of patterns) {
+    let negated = pattern.startsWith('!')
+    if (npm) {
+      const marks = /^!*/.exec(pattern)![0].length
+      negated = marks % 2 === 1
+      pattern = pattern.slice(marks).replace(/^\.?\/+/, '')
+    } else if (negated) {
+      pattern = pattern.slice(1)
+    }
+    if (negated) {
+      negative.push(pattern)
+    } else {
+      if (npm) negative = negative.filter(exclusion => !picomatch.isMatch(pattern, exclusion))
+      positive.push(pattern)
+    }
+  }
+  if (npm) positive = positive.filter(pattern => !negative.some(exclusion => picomatch.isMatch(pattern, exclusion)))
+  return { positive, negative }
+}
+
+/** Rewrite workspace patterns into an equivalent list whose exclusions apply regardless of order. */
+export function normalizePatterns(patterns: string[], npm = false) {
+  const { positive, negative } = splitPatterns(patterns, npm)
+  return [...positive, ...negative.map(pattern => '!' + pattern)]
 }
 
 export async function readOptional(path: string) {
@@ -116,13 +155,15 @@ export async function discoverWorkspaces(root: string, options: DiscoverOptions 
     if (path && !options.recursive) continue
     // Like Yarn, negated patterns only apply to the group that declares them.
     const prefix = path ? path.slice(1) + '/' : ''
-    const patterns = group.patterns.map(p => p.startsWith('!') ? '!' + prefix + p.slice(1) : prefix + p)
-    const folders = await globby(patterns, {
+    const split = splitPatterns(group.patterns, options.npm)
+    const positive = split.positive.map(p => prefix + p)
+    const negative = split.negative.map(p => prefix + p)
+    const folders = await globby(positive, {
       cwd: root,
       onlyDirectories: true,
       expandDirectories: false,
       followSymbolicLinks: false,
-      ignore: ['**/node_modules/**', '**/.git/**', '**/.yarn/**'],
+      ignore: ['**/node_modules/**', '**/.git/**', '**/.yarn/**', ...negative],
     })
     queue.push(...folders.sort().map(p => '/' + p.replace(/\/$/, '')))
   }

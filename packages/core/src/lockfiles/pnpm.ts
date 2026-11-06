@@ -61,16 +61,22 @@ function prune(lock: Record<string, any>) {
     if (lock.packages?.[id]) packages[id] = lock.packages[id]
     if (lock.time?.[id]) time[id] = lock.time[id]
   }
-  lock.packages = packages
-  lock.snapshots = snapshots
-  if (lock.time) lock.time = time
+  // pnpm omits empty sections, so an up-to-date seed must omit them as well.
+  for (const [field, value] of Object.entries({ packages, snapshots, time })) {
+    if (Object.keys(value).length) lock[field] = value
+    else delete lock[field]
+  }
 }
 
 /**
- * Map the importers of the root lockfile into the repository. A link to a project outside
- * the repository is replaced by the dependency of the previous repository lockfile. The
- * configuration recorded by the previous repository lockfile is kept; pnpm updates it when
- * the repository configuration differs.
+ * Map the importers of the root lockfile into the repository. A dependency of the root
+ * lockfile on a local directory other than a link to a staged project, such as a project of
+ * another repository, a workspace that the repository excludes, or an injected workspace
+ * package, is replaced by the dependency of the previous repository lockfile. Dependencies of
+ * the previous repository lockfile on local directories are kept only if they resolve to a
+ * staged project; pnpm resolves the removed dependencies again. The configuration recorded by
+ * the previous repository lockfile is kept; pnpm updates it when the repository configuration
+ * differs.
  *
  * The seed omits the document of package manager dependencies. pnpm resolves it again and
  * writes the whole lockfile, which also replaces the formatting of the seed with its own.
@@ -81,9 +87,25 @@ export function seedPnpm(root: string, previous: string | undefined, prefix: str
   const old = previous ? parse(previous).main : undefined
   const importerKeys = new Set(projects.map(project => project || '.'))
   const remap = (path: string) => path === prefix ? '.' : path.startsWith(prefix + '/') ? path.slice(prefix.length + 1) : undefined
+  const key = (path: string) => path === '' ? '.' : path
+  // Whether a dependency of an importer of the repository resolves to a staged project, if local.
+  const staged = (importer: string, version: unknown) => {
+    if (typeof version !== 'string') return true
+    const link = /^link:(.+)$/.exec(version)?.[1]
+    if (link) return importerKeys.has(key(posix.normalize(posix.join(importer, link))))
+    const directory = /^file:([^(]+)/.exec(version)?.[1]
+    return !directory || importerKeys.has(key(posix.normalize(directory)))
+  }
   const importers: Record<string, any> = {}
-  for (const [path, importer] of Object.entries<any>(old?.importers || {})) {
-    if (importerKeys.has(path)) importers[path] = structuredClone(importer)
+  for (const [path, original] of Object.entries<any>(old?.importers || {})) {
+    if (!importerKeys.has(path)) continue
+    const importer = structuredClone(original)
+    for (const field of importerFields) {
+      for (const [name, dependency] of Object.entries<any>(importer[field] || {})) {
+        if (!staged(path, dependency?.version)) delete importer[field][name]
+      }
+    }
+    importers[path] = importer
   }
   for (const [path, original] of Object.entries<any>(source.importers || {})) {
     const target = remap(path)
@@ -91,9 +113,14 @@ export function seedPnpm(root: string, previous: string | undefined, prefix: str
     const importer = structuredClone(original)
     for (const field of importerFields) {
       for (const [name, dependency] of Object.entries<any>(importer[field] || {})) {
-        if (typeof dependency?.version !== 'string' || !dependency.version.startsWith('link:')) continue
-        if (remap(posix.normalize(posix.join(path, dependency.version.slice(5)))) !== undefined) continue
-        const fallback = old?.importers?.[target]?.[field]?.[name]
+        const version = dependency?.version
+        if (typeof version !== 'string' || !/^(link|file):/.test(version)) continue
+        // Directories of `file:` dependencies are relative to the outer root, so only links are kept.
+        if (version.startsWith('link:')) {
+          const linked = remap(posix.normalize(posix.join(path, version.slice(5))))
+          if (linked !== undefined && importerKeys.has(linked)) continue
+        }
+        const fallback = importers[target]?.[field]?.[name]
         if (fallback) importer[field][name] = fallback
         else delete importer[field][name]
       }

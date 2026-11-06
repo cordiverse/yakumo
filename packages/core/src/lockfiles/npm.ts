@@ -66,7 +66,7 @@ export const npm: Adapter = {
   filename: 'package-lock.json',
   versions: 'npm 9 or later',
   supports: version => major(version) >= 9,
-  discover: {},
+  discover: { npm: true },
   async stage(tree, directory) {
     if (await exists(resolve(tree.root, 'npm-shrinkwrap.json'))) {
       throw new UnsupportedError(`${tree.root}: npm-shrinkwrap.json is not supported`)

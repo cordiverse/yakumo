@@ -110,6 +110,22 @@ describe('workspace discovery', () => {
     expect(Object.keys(outer.packages).sort()).toEqual(['', '/repos/a', '/repos/a/packages/excluded', '/repos/a/packages/included'])
   })
 
+  it('applies exclusions in the order of npm and regardless of order for other managers', async () => {
+    const root = resolve(temporary, 'discovery-order')
+    await write(resolve(root, 'package.json'), { workspaces: ['packages/*', '!packages/extra', 'packages/extra', '!packages/skip'] })
+    await write(resolve(root, 'packages/extra/package.json'), { name: 'extra' })
+    await write(resolve(root, 'packages/skip/package.json'), { name: 'skip' })
+    await write(resolve(root, 'packages/foo/package.json'), { name: 'foo' })
+    expect(Object.keys((await discoverWorkspaces(root, { npm: true })).packages)).toEqual(['', '/packages/extra', '/packages/foo'])
+    expect(Object.keys((await discoverWorkspaces(root)).packages)).toEqual(['', '/packages/foo'])
+
+    // npm strips `./` and treats an even number of `!` as an inclusion.
+    await write(resolve(root, 'package.json'), { workspaces: ['packages/*', '!packages/extra', './packages/extra', '!!!packages/skip'] })
+    expect(Object.keys((await discoverWorkspaces(root, { npm: true })).packages)).toEqual(['', '/packages/extra', '/packages/foo'])
+    await write(resolve(root, 'package.json'), { workspaces: ['!!packages/*'] })
+    expect(Object.keys((await discoverWorkspaces(root, { npm: true })).packages)).toEqual(['', '/packages/extra', '/packages/foo', '/packages/skip'])
+  })
+
   it('reads pnpm groups from pnpm-workspace.yaml and rewrites only their patterns', async () => {
     const root = resolve(temporary, 'discovery-pnpm')
     await write(resolve(root, 'package.json'), { name: 'root', workspaces: ['ignored/*'] })
@@ -430,7 +446,7 @@ describe('pnpm lockfiles', async () => {
     return root
   }
 
-  it('prefers root importers, replaces links out of the repository, and prunes unreachable packages', () => {
+  it('prefers root importers, replaces dependencies on unstaged directories, and prunes unreachable packages', () => {
     const resolution = (name: string) => ({ resolution: { integrity: `sha512-${name}` } })
     const root = [
       'lockfileVersion: \'9.0\'',
@@ -442,7 +458,8 @@ describe('pnpm lockfiles', async () => {
       '      semver: { specifier: ^7.7.0, version: 7.7.4 }',
       '      outside: { specifier: ^1.0.0, version: link:../../../b }',
       '      peer: { specifier: workspace:*, version: link:../peer }',
-      '  repos/a/packages/peer: {}',
+      '      ms: { specifier: ^2.1.0, version: link:../../external/ms }',
+      '      injected: { specifier: workspace:*, version: file:repos/a/packages/injected }',
       '  repos/b: {}',
       'packages:',
       '  semver@7.7.4: { resolution: { integrity: sha512-semver@7.7.4 } }',
@@ -459,6 +476,11 @@ describe('pnpm lockfiles', async () => {
       '    dependencies:',
       '      semver: { specifier: ^7.7.0, version: 7.7.3 }',
       '      outside: { specifier: ^1.0.0, version: 1.0.0(semver@7.7.3) }',
+      '      ms: { specifier: ^2.1.0, version: link:../../external/ms }',
+      '  packages/peer:',
+      '    dependencies:',
+      '      consumer: { specifier: workspace:*, version: link:../consumer }',
+      '      ignored: { specifier: workspace:*, version: link:../../external/ignored }',
       'packages:',
       '  semver@7.7.3: { resolution: { integrity: sha512-semver@7.7.3 } }',
       '  outside@1.0.0: { resolution: { integrity: sha512-outside@1.0.0 } }',
@@ -478,7 +500,9 @@ describe('pnpm lockfiles', async () => {
             peer: { specifier: 'workspace:*', version: 'link:../peer' },
           },
         },
-        'packages/peer': {},
+        'packages/peer': {
+          dependencies: { consumer: { specifier: 'workspace:*', version: 'link:../consumer' } },
+        },
       },
       packages: { 'semver@7.7.4': resolution('semver@7.7.4'), 'outside@1.0.0': resolution('outside@1.0.0'), 'semver@7.7.3': resolution('semver@7.7.3') },
       snapshots: { 'semver@7.7.4': {}, 'outside@1.0.0(semver@7.7.3)': { dependencies: { semver: '7.7.3' } }, 'semver@7.7.3': {} },
@@ -504,6 +528,22 @@ describe('pnpm lockfiles', async () => {
     const standalone = await checkout(resolve(root, 'repos/a'), 'pnpm-standalone')
     await exec(pnpm, ['install', '--frozen-lockfile', '--ignore-scripts'], standalone)
     expect(await fs.readFile(resolve(standalone, 'pnpm-lock.yaml'), 'utf8')).toBe(content)
+  }, 120000)
+
+  it('writes a lockfile without packages that passes the immutable check', async () => {
+    const root = resolve(temporary, 'pnpm-internal')
+    const packageManager = `pnpm@${version}`
+    await write(resolve(root, 'package.json'), { name: 'root', private: true, packageManager })
+    await write(resolve(root, 'pnpm-workspace.yaml'), 'packages:\n  - repos/*\n  - repos/a/packages/*\ninjectWorkspacePackages: true\n')
+    await write(resolve(root, 'repos/a/package.json'), { name: 'repo-a', private: true, packageManager })
+    await write(resolve(root, 'repos/a/pnpm-workspace.yaml'), 'packages:\n  - packages/*\n')
+    await execute('git', ['init', '-q'], { cwd: resolve(root, 'repos/a') })
+    await write(resolve(root, 'repos/a/packages/consumer/package.json'), { name: 'consumer', version: '1.0.0', dependencies: { peer: 'workspace:*' } })
+    await write(resolve(root, 'repos/a/packages/peer/package.json'), { name: 'peer', version: '1.0.0' })
+    await install(root, '--lockfile-only')
+    const [result] = await syncLockfiles(root, manager, options)
+    expect((await read(result.path)).importers['packages/consumer'].dependencies.peer.version).toBe('link:../peer')
+    expect((await syncLockfiles(root, manager, { ...options, check: true }))[0].changed).toBe(false)
   }, 120000)
 
   it('synchronizes from root postinstall', async () => {

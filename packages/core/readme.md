@@ -44,7 +44,7 @@ yarn yakumo lock --immutable         # fail if any repository lockfile is missin
 
 ### Workspaces
 
-Yarn 4 expands the workspaces that nested workspaces declare. npm and pnpm read only the declaration of the outer root, so `yakumo prepare` adds the workspace patterns of each nested repository to it: the `workspaces` field of `package.json` for npm, and the `packages` field of `pnpm-workspace.yaml` for pnpm. A nested pnpm repository declares its workspaces in its own `pnpm-workspace.yaml`.
+Yarn 4 expands the workspaces that nested workspaces declare. npm and pnpm read only the declaration of the outer root, so `yakumo prepare` adds the workspace patterns of each nested repository to it: the `workspaces` field of `package.json` for npm, and the `packages` field of `pnpm-workspace.yaml` for pnpm. A nested pnpm repository declares its workspaces in its own `pnpm-workspace.yaml`. A pattern is added unless the outer root already contains it or excludes it with `!`. The outer root applies an exclusion to all of its patterns, so an exclusion of a nested repository is added only if the directories it excludes are neither existing workspaces nor included by a pattern that another repository adds; otherwise `prepare` reports it as skipped. Before merging, `prepare` rewrites the patterns into an equivalent list without order-dependent exclusions, following the rules of the package manager, and writes the exclusions after the other patterns, where npm applies them to every pattern. `prepare --clean` removes the patterns inside nested workspaces that no workspace declares any longer, and keeps the exclusions of the outer root.
 
 ### Targets
 
