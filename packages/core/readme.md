@@ -16,7 +16,15 @@ The name comes from the Japanese word "八雲". In Touhou Project, Yakumo Yukari
 
 ## Repository Lockfiles
 
-Yakumo can maintain a standalone `yarn.lock` for each nested repository while dependencies are installed once at the outer workspace root. This feature supports Yarn 4; with other package managers, `yakumo postinstall` performs no action. Add the following lifecycle script to the root `package.json`:
+Yakumo can maintain a standalone lockfile for each nested repository while dependencies are installed once at the outer workspace root. The following package managers are supported; each writes the latest format of its lockfile:
+
+| Package Manager | Versions | Lockfile |
+| --- | --- | --- |
+| Yarn | 4 | `yarn.lock` |
+| npm | 9 or later | `package-lock.json` (`lockfileVersion` 3) |
+| pnpm | 9 or later | `pnpm-lock.yaml` (`lockfileVersion` 9.0) |
+
+Synchronization fails when the outer root uses a version outside this table. With Yarn Classic, `yakumo postinstall` performs no action. Add the following lifecycle script to the root `package.json`:
 
 ```json
 {
@@ -34,9 +42,13 @@ yarn yakumo lock external/foo        # synchronize selected repositories
 yarn yakumo lock --immutable         # fail if any repository lockfile is missing or outdated
 ```
 
+### Workspaces
+
+Yarn 4 expands the workspaces that nested workspaces declare. npm and pnpm read only the declaration of the outer root, so `yakumo prepare` adds the workspace patterns of each nested repository to it: the `workspaces` field of `package.json` for npm, and the `packages` field of `pnpm-workspace.yaml` for pnpm. A nested pnpm repository declares its workspaces in its own `pnpm-workspace.yaml`.
+
 ### Targets
 
-By default, every nested Git repository that contains workspace packages is a target. A repository receives one lockfile covering its root and all workspaces it declares recursively. Targets can also be configured as root-relative directories or globs:
+By default, every nested Git repository that contains workspace packages is a target. A repository receives one lockfile covering its root and the workspaces it declares, as its package manager discovers them in a standalone checkout. Targets can also be configured as root-relative directories or globs:
 
 ```json
 {
@@ -50,17 +62,36 @@ By default, every nested Git repository that contains workspace packages is a ta
 
 ### Resolution
 
-For each target, Yakumo copies the manifests and `.yarnrc.yml` of the repository into a temporary directory, seeds a lockfile with the registry records of the root lockfile and the previous repository lockfile, and runs `yarn install --mode=update-lockfile` there. Records in the root lockfile take precedence. A repository that pins another Yarn 4 version through `packageManager` is resolved with that version through Corepack. Workspace manifests that are ignored by Git are excluded.
+For each target, Yakumo copies the manifests and the package manager configuration of the repository into a temporary directory, seeds a lockfile from the root lockfile and the previous repository lockfile, and updates it there without installing packages:
+
+| Package Manager | Configuration | Command |
+| --- | --- | --- |
+| Yarn | `.yarnrc.yml` | `yarn install --mode=update-lockfile` |
+| npm | `.npmrc` | `npm install --package-lock-only` |
+| pnpm | `pnpm-workspace.yaml`, `.npmrc` | `pnpm install --lockfile-only` |
+
+The root lockfile takes precedence over the previous repository lockfile. For Yarn, the seed contains the registry records of both. For npm, the seed keeps the hoisted registry packages of the root and moves the packages installed below the repository to the corresponding locations. For pnpm, the seed maps the importers of the repository projects from the root lockfile. A dependency that the root links to a workspace of another repository is taken from the previous repository lockfile. Packages that the repository does not use are removed from the result.
+
+A repository that pins another version of the same package manager through `packageManager` or `devEngines.packageManager` is resolved with that version through Corepack. Workspace manifests that are ignored by Git are excluded.
 
 Lockfiles are written only after every target has been resolved. The root lockfile and the manifests are never modified.
 
-A repository is skipped with a warning when it uses a configuration that cannot be exported: dependencies other than registry ranges, tags, npm aliases and internal `workspace:` references; custom Yarn plugins, releases or patches; or workspaces outside the repository. `--strict` or `yakumo.lockfiles.strict` turns these warnings into errors.
+A repository is skipped with a warning when it uses a configuration that cannot be exported:
+
+- dependencies other than registry ranges, tags, npm aliases, internal `workspace:` references and, for pnpm, `catalog:` references;
+- workspaces outside the repository;
+- another package manager than the outer root, or a version that does not write the latest lockfile format;
+- for Yarn, custom plugins, releases, environment files or patches;
+- for npm, `npm-shrinkwrap.json`;
+- for pnpm, pnpmfiles, patches, or lockfiles other than a single shared `pnpm-lock.yaml`.
+
+`--strict` or `yakumo.lockfiles.strict` turns these warnings into errors.
 
 ### Immutable Mode
 
 `lock --immutable` resolves lockfiles without writing them. `lock` and `postinstall` also run in this mode when `CI` is set to a value other than empty, `0` or `false`.
 
-Yarn caches lifecycle scripts, so `postinstall` does not run after every installation, and `--mode=skip-build` skips it. CI should therefore run an explicit check:
+Yarn caches lifecycle scripts, so `postinstall` does not run after every installation, and `--mode=skip-build` skips it. npm and pnpm skip it with `--ignore-scripts`. CI should therefore run an explicit check:
 
 ```sh
 yarn install --immutable
@@ -69,7 +100,9 @@ yarn yakumo lock --immutable
 
 ### Limitations
 
-A nested `yarn.lock` makes its repository a separate Yarn project. Yarn commands that run in such a repository, including `yarn workspace <name> <script>` issued from the outer root, look for an installation inside the repository and fail.
+A nested lockfile makes its repository a separate project. Commands that run in such a repository look for an installation inside the repository. For Yarn, this includes `yarn workspace <name> <script>` issued from the outer root, which fails.
+
+pnpm 11 and later warn on every installation from the outer root that the `pnpm-workspace.yaml` of a nested repository does not apply.
 
 ## Official Extensions
 

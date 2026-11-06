@@ -1,6 +1,5 @@
 import { Context } from 'cordis'
-import { LockOptions } from '../lock.ts'
-import { isBerry } from '../workspace.ts'
+import { LockOptions, supportsLock } from '../lock.ts'
 
 export const inject = ['yakumo', 'cli']
 
@@ -27,7 +26,7 @@ export function apply(ctx: Context) {
   ctx.cli.command('postinstall', 'Run post-installation tasks')
     .action(async () => {
       await ctx.yakumo.initialize()
-      if (!isBerry(ctx.yakumo.manager)) return
+      if (!supportsLock(ctx.yakumo.manager)) return
       await lock()
     })
 }

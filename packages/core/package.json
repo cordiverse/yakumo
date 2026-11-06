@@ -70,6 +70,7 @@
     "picomatch": "^4.0.7",
     "prompts": "^2.4.2",
     "semver": "^7.8.6",
-    "which-pm-runs": "^1.1.0"
+    "which-pm-runs": "^1.1.0",
+    "yaml": "^2.9.1"
   }
 }

@@ -62,10 +62,10 @@ export function apply(ctx: Context) {
       await ctx.yakumo.initialize()
       const spinner = ora()
       let paths = ctx.yakumo.locate(args, {
-        filter: (meta) => {
+        filter: (meta, path) => {
           // 1. workspace roots are always private
           // 2. ignore private packages unless explicitly specified
-          return args.length ? !meta.workspaces : !meta.private
+          return args.length ? !ctx.yakumo.workspaceTree.groups[path] : !meta.private
         },
       })
 

@@ -4,14 +4,21 @@ import { tmpdir } from 'node:os'
 import { promisify } from 'node:util'
 import { execFile } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
-import { parseSyml, stringifySyml } from '@yarnpkg/parsers'
 import { globby } from 'globby'
-import { validRange } from 'semver'
-import { detectManager, discoverWorkspaces, inside, readOptional, WorkspaceTree } from './workspace.ts'
-import type { Manager, PackageJson } from './index.ts'
+import { detectManager, discoverOptions, discoverWorkspaces, inside, readOptional, WorkspaceTree } from './workspace.ts'
+import { Adapter, exists, UnsupportedError } from './lockfiles/shared.ts'
+import { yarn } from './lockfiles/yarn.ts'
+import { npm } from './lockfiles/npm.ts'
+import { pnpm } from './lockfiles/pnpm.ts'
+import type { Manager } from './index.ts'
+
+export { UnsupportedError } from './lockfiles/shared.ts'
+export { seedYarn } from './lockfiles/yarn.ts'
+export { seedNpm } from './lockfiles/npm.ts'
+export { seedPnpm } from './lockfiles/pnpm.ts'
 
 const execute = promisify(execFile)
-const dependencyTypes = ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies'] as const
+const adapters: Record<string, Adapter> = { yarn, npm, pnpm }
 
 export interface LockOptions {
   /** Repository directories, relative to the installation root. Defaults to nested Git roots. */
@@ -33,9 +40,9 @@ export interface LockResult {
   skipped?: string
 }
 
-/** A repository uses a configuration that standalone lockfile export does not support. */
-export class UnsupportedError extends Error {
-  name = 'UnsupportedError'
+/** Whether lockfile synchronization supports a package manager. Versions are checked during synchronization. */
+export function supportsLock(manager?: Manager) {
+  return !!manager && manager.name in adapters && !(manager.name === 'yarn' && manager.version.startsWith('1.'))
 }
 
 export async function managerCommand(root: string, manager: Manager, override?: string[]) {
@@ -43,21 +50,24 @@ export async function managerCommand(root: string, manager: Manager, override?: 
   const path = process.env.npm_execpath
   if (path && process.env.npm_config_user_agent?.startsWith(manager.name + '/')) {
     const executable = resolve(root, path)
-    // Yarn lifecycle scripts can expose a shell wrapper rather than a JS entry.
+    // Lifecycle scripts can expose a shell wrapper or a native binary rather than a JS entry.
     return /\.[cm]?js$/i.test(executable) ? [process.execPath, executable] : [executable]
   }
   return [manager.name]
 }
 
+// npm and pnpm pass their configuration to lifecycle scripts as environment variables.
+// These settings select a different project or a subset of it, or forbid lockfile updates.
+const scopedSettings = new Set([
+  'dir', 'filter', 'filter_prod', 'frozen_lockfile', 'global', 'include_workspace_root', 'location',
+  'lockfile_dir', 'prefer_frozen_lockfile', 'recursive', 'workspace', 'workspace_root', 'workspaces',
+])
+
 export function isolatedEnv(extra?: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
-  const env = {
-    ...process.env,
-    ...extra,
-    YARN_ENABLE_SCRIPTS: 'false',
-    YARN_ENABLE_IMMUTABLE_INSTALLS: 'false',
-  }
+  const env: NodeJS.ProcessEnv = { ...process.env, ...extra, npm_config_update_notifier: 'false' }
   for (const key of Object.keys(env)) {
-    if (/^YARN_(PLUGINS|PROJECT_CWD)$/i.test(key)) delete env[key]
+    const setting = /^(?:npm|pnpm)_config_(.+)$/i.exec(key)?.[1].toLowerCase().replace(/-/g, '_')
+    if (/^YARN_(PLUGINS|PROJECT_CWD)$/i.test(key) || (setting && scopedSettings.has(setting))) delete env[key]
   }
   return env
 }
@@ -78,17 +88,17 @@ async function repositories(tree: WorkspaceTree, explicit?: string[]) {
   for (const path of Object.keys(tree.packages)) {
     let directory = tree.root + path
     while (directory !== tree.root && inside(tree.root, directory)) {
-      if (await fs.lstat(resolve(directory, '.git')).catch(() => undefined)) result.add('/' + relative(tree.root, directory))
+      if (await exists(resolve(directory, '.git'))) result.add('/' + relative(tree.root, directory))
       directory = dirname(directory)
     }
   }
   return [...result].sort()
 }
 
-async function standaloneTree(tree: WorkspaceTree, path: string) {
+async function standaloneTree(adapter: Adapter, tree: WorkspaceTree, path: string) {
   const root = tree.root + path
   if (!inside(tree.root, root) || root === tree.root) throw new Error(`Invalid repository: ${path}`)
-  const standalone = await discoverWorkspaces(root, { recursive: true })
+  const standalone = await discoverWorkspaces(root, adapter.discover)
   if (!standalone.packages['']) throw new UnsupportedError(`missing repository manifest ${root}/package.json`)
   const realRoot = await fs.realpath(root)
   for (const key of Object.keys(standalone.packages)) {
@@ -97,7 +107,7 @@ async function standaloneTree(tree: WorkspaceTree, path: string) {
     }
   }
   // Ignored nested clones are absent from a standalone checkout. Do not export their manifests.
-  if (await fs.lstat(resolve(root, '.git')).catch(() => undefined)) {
+  if (await exists(resolve(root, '.git'))) {
     const { stdout } = await execute('git', ['ls-files', '--cached', '--others', '--exclude-standard', '-z'], { cwd: root, maxBuffer: 16 * 1024 * 1024 })
     const files = new Set(stdout.split('\0'))
     for (const key of Object.keys(standalone.packages)) {
@@ -112,100 +122,30 @@ async function standaloneTree(tree: WorkspaceTree, path: string) {
   return standalone
 }
 
-function assertRegistrySpecifier(specifier: string, label: string) {
-  // This first adapter supports registry ranges/tags and npm aliases. Protocols that
-  // depend on repository files need a separate staging policy.
-  let range = specifier.replace(/^npm:/, '')
-  if (specifier.startsWith('npm:')) range = range.replace(/^(@[^/]+\/[^@]+|[^@]+)@/, '')
-  if (validRange(range) || /^[a-zA-Z][\w.-]*$/.test(range)) return
-  throw new UnsupportedError(`${label}: cannot export ${specifier}; only registry dependencies and internal workspace references are supported`)
-}
-
-function assertPortable(tree: WorkspaceTree) {
-  const names = new Set(Object.values(tree.packages).map(meta => meta.name))
-  for (const [path, meta] of Object.entries(tree.packages)) {
-    for (const type of dependencyTypes) {
-      for (const [name, specifier] of Object.entries(meta[type] || {})) {
-        if (specifier.startsWith('workspace:')) {
-          const target = specifier.slice(10)
-          const alias = /^(@[^/]+\/[^@]+|[^@]+)@/.exec(target)?.[1]
-          const relativeTarget = relative(tree.root, resolve(tree.root + path, target))
-          const internal = target.startsWith('.') ? tree.packages[relativeTarget ? '/' + relativeTarget : ''] : names.has(alias || name)
-          if (!internal) throw new UnsupportedError(`${tree.root + path}: ${name}@${specifier} crosses a repository boundary; use a published version range`)
-        } else {
-          assertRegistrySpecifier(specifier, `${tree.root + path}: ${name}`)
-        }
-      }
-    }
-  }
-}
-
-async function stage(tree: WorkspaceTree, directory: string, version: string) {
-  assertPortable(tree)
-  for (const [path, original] of Object.entries(tree.packages)) {
-    const meta = structuredClone(original) as PackageJson
-    // The staging directory has no ancestor manifest, so Corepack resolves `yarn` from this field.
-    if (!path) (meta as any).packageManager ||= `yarn@${version}`
-    for (const specifier of Object.values<string>((meta as any).resolutions || {})) {
-      assertRegistrySpecifier(specifier, `${tree.root + path}: resolutions`)
-    }
-    await fs.mkdir(directory + path, { recursive: true })
-    await fs.writeFile(resolve(directory + path, 'package.json'), JSON.stringify(meta, null, 2) + '\n')
-  }
-  const rc = await readOptional(resolve(tree.root, '.yarnrc.yml'))
-  const config = rc === undefined ? {} : parseSyml(rc)
-  if (config.plugins?.length || config.yarnPath || config.patchFolder || config.injectEnvironmentFiles?.length) {
-    throw new UnsupportedError(`${tree.root}: custom Yarn plugins, releases, environment files and patches need an explicit standalone layout`)
-  }
-  for (const extension of Object.values<any>(config.packageExtensions || {})) {
-    for (const type of dependencyTypes) {
-      for (const specifier of Object.values<string>(extension[type] || {})) assertRegistrySpecifier(specifier, `${tree.root}: packageExtensions`)
-    }
-  }
-  delete config.plugins
-  await fs.writeFile(resolve(directory, '.yarnrc.yml'), stringifySyml({
-    ...config,
-    installStatePath: resolve(directory, '.yarn/install-state.gz'),
-    enableScripts: false,
-    enableImmutableInstalls: false,
-    enableTelemetry: false,
-  }))
-}
-
-/** Reuse registry records, never workspace locators rooted in a different project. */
-export function seedYarn(root: string, previous?: string) {
-  const source = parseSyml(root)
-  if (!source.__metadata) throw new Error('Yarn Classic lockfiles are not supported')
-  const seed: Record<string, any> = { __metadata: source.__metadata }
-  for (const lock of [previous ? parseSyml(previous) : {}, source]) {
-    for (const [key, entry] of Object.entries<any>(lock)) {
-      if (!entry?.resolution || !/^(@[^/]+\/)?[^@]+@npm:/.test(entry.resolution)) continue
-      for (const descriptor of key.split(/, /)) seed[descriptor] = entry
-    }
-  }
-  return stringifySyml(seed)
+async function version(command: string[], cwd: string, env: NodeJS.ProcessEnv) {
+  const { stdout } = await execute(command[0], [...command.slice(1), '--version'], { cwd, env })
+  return stdout.trim()
 }
 
 export async function syncLockfiles(root: string, manager?: Manager, options: LockOptions = {}): Promise<LockResult[]> {
   const check = options.check ?? !['', '0', 'false'].includes(process.env.CI ?? '')
   root = resolve(root)
   manager ||= await detectManager(root)
-  if (manager.name !== 'yarn') throw new Error(`Lockfile synchronization currently supports Yarn 4, not ${manager.name}`)
+  const adapter = adapters[manager.name]
+  if (!adapter) throw new Error(`Lockfile synchronization does not support ${manager.name}`)
   const command = await managerCommand(root, manager, options.command)
   const env = isolatedEnv(options.env)
-  if (env.YARN_RC_FILENAME && env.YARN_RC_FILENAME !== '.yarnrc.yml') {
-    throw new Error('Custom YARN_RC_FILENAME is not supported by lockfile synchronization')
-  }
-  const { stdout } = await execute(command[0], [...command.slice(1), '--version'], { cwd: root, env })
-  const version = stdout.trim()
-  if (manager.version && manager.version !== version) throw new Error(`Expected ${manager.name}@${manager.version}, found ${version}`)
-  if (!/^4\./.test(version)) throw new Error(`Unsupported lockfile adapter: ${manager.name}@${version}; expected Yarn 4`)
-  manager = { ...manager, version }
-  const commands = new Map<string, string[]>([[version, command]])
-  const tree = await discoverWorkspaces(root, { recursive: true })
+  adapter.checkEnv?.(env)
+  const current = await version(command, root, env)
+  if (manager.version && manager.version !== current) throw new Error(`Expected ${manager.name}@${manager.version}, found ${current}`)
+  if (!adapter.supports(current)) throw new Error(`Unsupported lockfile adapter: ${manager.name}@${current}; expected ${adapter.versions}`)
+  manager = { ...manager, version: current }
+  // Corepack commands that have been verified for a version.
+  const fallbacks = new Map<string, string[]>()
+  const tree = await discoverWorkspaces(root, discoverOptions(manager))
   const targets = await repositories(tree, options.repositories)
   if (!targets.length) return []
-  const filename = 'yarn.lock'
+  const { filename } = adapter
   const rootLock = await readOptional(resolve(root, filename))
   if (!rootLock) throw new Error(`Missing ${root}/${filename}; install the root first`)
   const temporary = await fs.mkdtemp(resolve(tmpdir(), 'yakumo-lock-'))
@@ -217,45 +157,57 @@ export async function syncLockfiles(root: string, manager?: Manager, options: Lo
       options.onProgress?.(`Resolving ${path.slice(1)}/${filename}`)
       const target = resolve(root + path, filename)
       const directory = resolve(temporary, String(index))
-      let standalone: WorkspaceTree
       let targetManager: Manager
+      let projects: string[]
       try {
-        standalone = await standaloneTree(tree, path)
-        targetManager = await detectManager(standalone.root, manager)
-        if (targetManager.name !== 'yarn' || !/^4\./.test(targetManager.version)) {
-          throw new UnsupportedError(`${standalone.root}: standalone lockfile generation requires Yarn 4`)
+        targetManager = await detectManager(root + path, manager)
+        if (targetManager.name !== manager.name) {
+          throw new UnsupportedError(`${root + path}: repository uses ${targetManager.name}, but the installation root uses ${manager.name}`)
         }
-        await stage(standalone, directory, targetManager.version)
+        targetManager = { ...targetManager, version: targetManager.version || manager.version }
+        if (!adapter.supports(targetManager.version)) {
+          throw new UnsupportedError(`${root + path}: standalone lockfile generation requires ${adapter.versions}`)
+        }
+        const standalone = await standaloneTree(adapter, tree, path)
+        await adapter.stage(standalone, directory, targetManager)
+        projects = Object.keys(standalone.packages).map(key => key.slice(1))
       } catch (error) {
         // Configuration-level limitations skip one repository; resolution failures still abort.
         if (!(error instanceof UnsupportedError) || options.strict) throw error
-        const exists = await readOptional(target) !== undefined
-        warn(`Skipping ${path.slice(1)}: ${error.message}${exists ? `; existing ${filename} left unchanged` : ''}`)
+        const present = await readOptional(target) !== undefined
+        warn(`Skipping ${path.slice(1)}: ${error.message}${present ? `; existing ${filename} left unchanged` : ''}`)
         skipped.push({ path: target, changed: false, skipped: error.message })
         continue
       }
-      let targetCommand = commands.get(targetManager.version)
-      if (!targetCommand) {
-        targetCommand = ['corepack', `yarn@${targetManager.version}`]
-        const { stdout } = await execute(targetCommand[0], [...targetCommand.slice(1), '--version'], { cwd: standalone.root, env })
-        if (stdout.trim() !== targetManager.version) throw new Error(`Expected Yarn ${targetManager.version}, found ${stdout.trim()}`)
-        commands.set(targetManager.version, targetCommand)
+      // The command of the root may select another version in the staging directory,
+      // for example through Corepack or the version management of pnpm.
+      const expected = targetManager.version
+      let targetCommand = command
+      if (await version(command, directory, env) !== expected) {
+        targetCommand = fallbacks.get(expected)!
+        if (!targetCommand) {
+          targetCommand = ['corepack', `${manager.name}@${expected}`]
+          const found = await version(targetCommand, directory, env)
+          if (found !== expected) throw new Error(`Expected ${manager.name}@${expected}, found ${found}`)
+          fallbacks.set(expected, targetCommand)
+        }
       }
       const before = await readOptional(target)
-      const seed = seedYarn(rootLock, before)
-      await fs.writeFile(resolve(directory, filename), seed)
-      const args = ['install', '--mode=update-lockfile']
+      await fs.writeFile(resolve(directory, filename), adapter.seed(rootLock, before, path.slice(1), projects))
       try {
-        await execute(targetCommand[0], [...targetCommand.slice(1), ...args], {
+        await execute(targetCommand[0], [...targetCommand.slice(1), ...adapter.args], {
           cwd: directory,
-          env: { ...env, YARN_INSTALL_STATE_PATH: resolve(directory, '.yarn/install-state.gz') },
+          env: { ...env, ...adapter.env?.(directory) },
           maxBuffer: 16 * 1024 * 1024,
         })
       } catch (error) {
         const failure = error as Error & { stdout?: string; stderr?: string }
         throw new Error(`Cannot resolve standalone lockfile for ${root + path}:\n${failure.stdout || ''}${failure.stderr || failure.message}`)
       }
-      outputs.push({ path: target, before, content: await fs.readFile(resolve(directory, filename), 'utf8') })
+      const content = await readOptional(resolve(directory, filename))
+      if (content === undefined) throw new Error(`${manager.name} did not write ${filename} for ${root + path}`)
+      adapter.verify(content)
+      outputs.push({ path: target, before, content })
     }
     // Resolve everything before writing anything, and refuse to overwrite concurrent edits.
     if (await fs.readFile(resolve(root, filename), 'utf8') !== rootLock) throw new Error('Root lockfile changed during synchronization; retry')

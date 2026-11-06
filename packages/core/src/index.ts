@@ -5,7 +5,7 @@ import { manager, spawnAsync } from './utils.ts'
 import { promises as fs, readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { deduplicate, Dict, makeArray } from 'cosmokit'
-import { detectManager, discoverWorkspaces, isBerry, WorkspaceTree } from './workspace.ts'
+import { detectManager, discoverOptions, discoverWorkspaces, WorkspaceTree, writePnpmPackages } from './workspace.ts'
 import { LockOptions, syncLockfiles } from './lock.ts'
 import * as lock from './plugins/lock.ts'
 import * as list from './plugins/list.ts'
@@ -131,7 +131,7 @@ export default class Yakumo extends Service {
 
   async initialize() {
     this.manager = await detectManager(this.cwd, manager)
-    this.workspaceTree = await discoverWorkspaces(this.cwd, { recursive: isBerry(this.manager) })
+    this.workspaceTree = await discoverWorkspaces(this.cwd, discoverOptions(this.manager))
     this.workspaces = this.workspaceTree.packages
   }
 
@@ -226,7 +226,15 @@ export default class Yakumo extends Service {
 
   async save(path: string) {
     const content = JSON.stringify(this.workspaces[path], null, this.indent) + '\n'
-    await fs.writeFile(`${cwd}${path}/package.json`, content)
+    await fs.writeFile(`${this.cwd}${path}/package.json`, content)
+  }
+
+  /** Write the workspace patterns of the root group to the file that the package manager reads. */
+  async saveWorkspaces(patterns: string[]) {
+    this.workspaceTree.groups[''] = { path: '', patterns }
+    if (this.manager.name === 'pnpm') return writePnpmPackages(this.cwd, patterns)
+    this.workspaces[''].workspaces = patterns
+    await this.save('')
   }
 
   async syncLocks(options: LockOptions = {}) {
@@ -238,8 +246,8 @@ export default class Yakumo extends Service {
   }
 
   async install() {
-    const agent = manager?.name || 'npm'
-    const code = await spawnAsync([agent, 'install'])
+    const agent = this.manager?.name || 'npm'
+    const code = await spawnAsync([agent, 'install'], { cwd: this.cwd })
     if (code) process.exit(code)
   }
 }

@@ -1,6 +1,8 @@
 import { promises as fs } from 'node:fs'
 import { isAbsolute, relative, resolve } from 'node:path'
 import { globby } from 'globby'
+import { valid } from 'semver'
+import { parseDocument } from 'yaml'
 import type { Manager, PackageJson } from './index.ts'
 
 export interface WorkspaceGroup {
@@ -17,9 +19,15 @@ export interface WorkspaceTree {
 export interface DiscoverOptions {
   /**
    * Expand `workspaces` declared by nested workspaces, as Yarn 2+ does.
-   * npm and Yarn Classic only read the root declaration.
+   * npm, pnpm and Yarn Classic only read the root declaration.
    */
   recursive?: boolean
+  /** Read workspace patterns from `pnpm-workspace.yaml` instead of the `workspaces` field. */
+  pnpm?: boolean
+}
+
+export function discoverOptions(manager?: Manager): DiscoverOptions {
+  return { recursive: isBerry(manager), pnpm: manager?.name === 'pnpm' }
 }
 
 export async function readOptional(path: string) {
@@ -39,16 +47,43 @@ export function isBerry(manager?: Manager) {
   return manager?.name === 'yarn' && !manager.version.startsWith('1.')
 }
 
+const lockfiles = { 'yarn.lock': 'yarn', 'pnpm-lock.yaml': 'pnpm', 'pnpm-workspace.yaml': 'pnpm', 'package-lock.json': 'npm' }
+
+/**
+ * Detect the package manager of a project from `packageManager`, then `devEngines.packageManager`.
+ * A `devEngines` range yields an empty version. Without either field, the fallback applies;
+ * without a fallback, the lockfile or workspace file in the directory decides.
+ */
 export async function detectManager(root: string, fallback?: Manager): Promise<Manager> {
   const meta = JSON.parse(await fs.readFile(resolve(root, 'package.json'), 'utf8'))
   const match = /^(yarn|pnpm|npm)@([^+]+)/.exec(meta.packageManager || '')
   if (match) return { name: match[1], version: match[2] }
-  if (!fallback && await readOptional(resolve(root, 'yarn.lock')) !== undefined) return { name: 'yarn', version: '' }
-  return fallback || { name: 'npm', version: '' }
+  const engine = [meta.devEngines?.packageManager].flat()[0]
+  if (['yarn', 'pnpm', 'npm'].includes(engine?.name)) return { name: engine.name, version: valid(engine.version) || '' }
+  if (fallback) return fallback
+  for (const [filename, name] of Object.entries(lockfiles)) {
+    if (await readOptional(resolve(root, filename)) !== undefined) return { name, version: '' }
+  }
+  return { name: 'npm', version: '' }
 }
 
-function getPatterns(meta: PackageJson, directory: string) {
-  const value = meta.workspaces as unknown
+export async function readPnpmWorkspace(directory: string): Promise<Record<string, any> | undefined> {
+  const content = await readOptional(resolve(directory, 'pnpm-workspace.yaml'))
+  if (content === undefined) return
+  const document = parseDocument(content)
+  if (document.errors.length) throw new Error(`Invalid ${directory}/pnpm-workspace.yaml: ${document.errors[0].message}`)
+  return document.toJS() ?? {}
+}
+
+/** Replace the `packages` field of `pnpm-workspace.yaml`, preserving the other content. */
+export async function writePnpmPackages(directory: string, patterns: string[]) {
+  const path = resolve(directory, 'pnpm-workspace.yaml')
+  const document = parseDocument(await readOptional(path) ?? '')
+  document.set('packages', document.createNode(patterns))
+  await fs.writeFile(path, document.toString())
+}
+
+function getPatterns(value: unknown, directory: string) {
   // Yarn Classic also accepts `{ packages: [...] }`.
   const patterns = Array.isArray(value) ? value : (value as any)?.packages
   if (!Array.isArray(patterns) || patterns.some(p => typeof p !== 'string' || isAbsolute(p.replace(/^!/, '')) || p.split('/').includes('..'))) {
@@ -74,8 +109,9 @@ export async function discoverWorkspaces(root: string, options: DiscoverOptions 
     if (content === undefined) continue
     const meta: PackageJson = JSON.parse(content)
     tree.packages[path] = meta
-    if (!meta.workspaces) continue
-    const group: WorkspaceGroup = { path, patterns: getPatterns(meta, directory) }
+    const value = options.pnpm ? (await readPnpmWorkspace(directory))?.packages : meta.workspaces
+    if (!value) continue
+    const group: WorkspaceGroup = { path, patterns: getPatterns(value, directory) }
     tree.groups[path] = group
     if (path && !options.recursive) continue
     // Like Yarn, negated patterns only apply to the group that declares them.

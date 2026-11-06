@@ -10,8 +10,9 @@ import { build } from 'esbuild'
 import Cli, { Input } from '@cordisjs/plugin-cli'
 import Yakumo, { Context } from '../../../packages/core/src/index.ts'
 import { parseSyml, stringifySyml } from '@yarnpkg/parsers'
-import { syncLockfiles, seedYarn } from '../../../packages/core/src/lock.ts'
-import { discoverWorkspaces } from '../../../packages/core/src/workspace.ts'
+import { parse as parseYaml, parseAllDocuments } from 'yaml'
+import { syncLockfiles, seedNpm, seedPnpm, seedYarn } from '../../../packages/core/src/lock.ts'
+import { discoverWorkspaces, writePnpmPackages } from '../../../packages/core/src/workspace.ts'
 
 const execute = promisify(execFile)
 const temporary = await fs.mkdtemp(resolve(tmpdir(), 'yakumo-lock-test-'))
@@ -19,7 +20,14 @@ const host = resolve(temporary, 'host')
 const require = createRequire(import.meta.url)
 // Keep the package cache and metadata of fixture installations out of the user's global Yarn folder.
 const globalFolder = resolve(temporary, 'yarn-global')
-const env = { ...process.env, YARN_GLOBAL_FOLDER: globalFolder, YARN_ENABLE_TELEMETRY: '0', YARN_ENABLE_IMMUTABLE_INSTALLS: 'false', CI: '' }
+const env: NodeJS.ProcessEnv = { ...process.env, YARN_GLOBAL_FOLDER: globalFolder, YARN_ENABLE_TELEMETRY: '0', YARN_ENABLE_IMMUTABLE_INSTALLS: 'false', CI: '' }
+// Likewise for npm and pnpm, which also read their settings from these variables.
+for (const prefix of ['npm_config_', 'pnpm_config_']) {
+  env[prefix + 'cache'] = resolve(temporary, 'npm-cache')
+  env[prefix + 'cache_dir'] = resolve(temporary, 'pnpm-cache')
+  env[prefix + 'store_dir'] = resolve(temporary, 'pnpm-store')
+  env[prefix + 'state_dir'] = resolve(temporary, 'pnpm-state')
+}
 delete env.YARN_PLUGINS
 const yarn = ['yarn']
 const { stdout: versionOutput } = await execute(yarn[0], [...yarn.slice(1), '--version'], { env })
@@ -100,6 +108,25 @@ describe('workspace discovery', () => {
     await write(resolve(root, 'package.json'), { workspaces: ['repos/*', 'repos/a/packages/excluded'] })
     const outer = await discoverWorkspaces(root, { recursive: true })
     expect(Object.keys(outer.packages).sort()).toEqual(['', '/repos/a', '/repos/a/packages/excluded', '/repos/a/packages/included'])
+  })
+
+  it('reads pnpm groups from pnpm-workspace.yaml and rewrites only their patterns', async () => {
+    const root = resolve(temporary, 'discovery-pnpm')
+    await write(resolve(root, 'package.json'), { name: 'root', workspaces: ['ignored/*'] })
+    await write(resolve(root, 'pnpm-workspace.yaml'), '# root\npackages:\n  - repos/*\ncatalog:\n  ms: ^2.1.0 # pinned\n')
+    await write(resolve(root, 'repos/a/package.json'), { name: 'repo-a' })
+    await write(resolve(root, 'repos/a/pnpm-workspace.yaml'), 'packages:\n  - packages/*\n')
+    await write(resolve(root, 'repos/a/packages/foo/package.json'), { name: 'foo' })
+    await write(resolve(root, 'ignored/bar/package.json'), { name: 'bar' })
+    const tree = await discoverWorkspaces(root, { pnpm: true })
+    expect(Object.keys(tree.packages)).toEqual(['', '/repos/a'])
+    expect(tree.groups).toEqual({ '': { path: '', patterns: ['repos/*'] }, '/repos/a': { path: '/repos/a', patterns: ['packages/*'] } })
+
+    await writePnpmPackages(root, ['repos/*', 'repos/a/packages/*'])
+    const content = await fs.readFile(resolve(root, 'pnpm-workspace.yaml'), 'utf8')
+    expect(content).toContain('# root')
+    expect(content).toContain('# pinned')
+    expect(parseYaml(content)).toEqual({ packages: ['repos/*', 'repos/a/packages/*'], catalog: { ms: '^2.1.0' } })
   })
 })
 
@@ -268,4 +295,222 @@ describe('Yarn lockfiles', () => {
       vi.unstubAllEnvs()
     }
   }, 60000)
+})
+
+async function exec(command: string[], args: string[], cwd: string) {
+  return execute(command[0], [...command.slice(1), ...args], { cwd, env, maxBuffer: 4 * 1024 * 1024 }).catch(error => {
+    error.message += '\n' + error.stdout + error.stderr
+    throw error
+  })
+}
+
+async function patch(path: string, update: (meta: any) => void) {
+  const meta = JSON.parse(await fs.readFile(path, 'utf8'))
+  update(meta)
+  await write(path, meta)
+}
+
+/** Copy a repository as a standalone checkout. */
+async function checkout(source: string, name: string) {
+  const target = resolve(temporary, name)
+  await fs.cp(source, target, { recursive: true, filter: path => !/\/(node_modules|\.git|external)(\/|$)/.test(path.slice(source.length)) })
+  return target
+}
+
+/**
+ * Lay out a repository that the outer root installs together with one of its own packages.
+ * The root lockfile keeps `semver@7.7.4` for `consumer`, which a fresh resolution of `^7.7.0`
+ * would not select. `ignored` is a nested clone ignored by the repository.
+ */
+async function layout(root: string, internal: string) {
+  await write(resolve(root, 'repos/a/.gitignore'), '/external\n')
+  await execute('git', ['init', '-q'], { cwd: resolve(root, 'repos/a') })
+  await write(resolve(root, 'repos/a/packages/consumer/package.json'), {
+    name: 'consumer', version: '1.0.0',
+    dependencies: { semver: '~7.7.0', peer: internal },
+  })
+  await write(resolve(root, 'repos/a/packages/peer/package.json'), { name: 'peer', version: '1.0.0', dependencies: { ms: '^2.1.0' } })
+  await write(resolve(root, 'repos/a/external/ignored/package.json'), { name: 'ignored', version: '1.0.0', dependencies: { 'is-number': '^7.0.0' } })
+}
+
+describe('npm lockfiles', async () => {
+  const npm = ['npm']
+  const version = (await exec(npm, ['--version'], temporary)).stdout.trim()
+  const manager = { name: 'npm', version }
+  const options = { command: npm, env, check: false }
+  const install = (cwd: string, ...args: string[]) => exec(npm, ['install', '--no-audit', '--no-fund', ...args], cwd)
+
+  async function fixture(name: string) {
+    const root = resolve(temporary, name)
+    await write(resolve(root, 'package.json'), { name: 'root', private: true, workspaces: ['repos/*', 'repos/a/packages/*', 'repos/a/external/*'] })
+    await write(resolve(root, 'repos/a/package.json'), { name: 'repo-a', private: true, workspaces: ['packages/*', 'external/*'] })
+    await layout(root, '^1.0.0')
+    await install(root, '--package-lock-only')
+    await patch(resolve(root, 'repos/a/packages/consumer/package.json'), meta => meta.dependencies.semver = '^7.7.0')
+    await install(root, '--package-lock-only')
+    expect(JSON.parse(await fs.readFile(resolve(root, 'package-lock.json'), 'utf8')).packages['node_modules/semver'].version).toBe('7.7.4')
+    return root
+  }
+
+  it('prefers root placements and takes only packages unknown to the root from an old child lock', () => {
+    const record = (version: string) => ({ version, resolved: `https://registry.npmjs.org/semver/-/semver-${version}.tgz` })
+    const root = JSON.stringify({ lockfileVersion: 3, packages: {
+      '': { name: 'root' },
+      'node_modules/semver': record('7.7.4'),
+      'node_modules/consumer': { resolved: 'repos/a/packages/consumer', link: true },
+      'node_modules/outside': { resolved: 'repos/b', link: true },
+      'node_modules/local': { resolved: '../local', version: '1.0.0' },
+      'repos/a/packages/consumer': { version: '1.0.0' },
+      'repos/a/packages/consumer/node_modules/ms': record('2.1.3'),
+      'repos/b': { version: '1.0.0' },
+    } })
+    const old = JSON.stringify({ lockfileVersion: 3, packages: {
+      'node_modules/outside': record('1.0.0'),
+      'packages/consumer/node_modules/semver': record('7.7.3'),
+    } })
+    expect(JSON.parse(seedNpm(root, old, 'repos/a', ['', 'packages/consumer'])).packages).toEqual({
+      'node_modules/semver': record('7.7.4'),
+      'node_modules/consumer': { resolved: 'packages/consumer', link: true },
+      'node_modules/outside': record('1.0.0'),
+      'packages/consumer': { version: '1.0.0' },
+      'packages/consumer/node_modules/ms': record('2.1.3'),
+    })
+  })
+
+  it('maps root placements into the repository and supports standalone clean installs', async () => {
+    const root = await fixture('npm')
+    const rootLock = await fs.readFile(resolve(root, 'package-lock.json'), 'utf8')
+    const [result] = await syncLockfiles(root, manager, options)
+    expect(result).toEqual({ path: resolve(root, 'repos/a/package-lock.json'), changed: true })
+    const content = await fs.readFile(result.path, 'utf8')
+    const { packages } = JSON.parse(content)
+    expect(packages['node_modules/semver'].version).toBe('7.7.4')
+    expect(packages['node_modules/peer']).toEqual({ resolved: 'packages/peer', link: true })
+    expect(Object.keys(packages).filter(key => /ignored|is-number|repos\//.test(key))).toEqual([])
+    expect(await fs.readFile(resolve(root, 'package-lock.json'), 'utf8')).toBe(rootLock)
+    expect((await syncLockfiles(root, manager, { ...options, check: true }))[0].changed).toBe(false)
+
+    const standalone = await checkout(resolve(root, 'repos/a'), 'npm-standalone')
+    await exec(npm, ['ci', '--ignore-scripts', '--no-audit', '--no-fund'], standalone)
+    await install(standalone, '--package-lock-only', '--ignore-scripts')
+    expect(await fs.readFile(resolve(standalone, 'package-lock.json'), 'utf8')).toBe(content)
+  }, 120000)
+
+  it('synchronizes from root postinstall', async () => {
+    const root = await fixture('npm-postinstall')
+    await patch(resolve(root, 'package.json'), meta => meta.scripts = { postinstall: `node ${JSON.stringify(resolve(host, 'postinstall.mjs'))}` })
+    await install(root)
+    const content = await fs.readFile(resolve(root, 'repos/a/package-lock.json'), 'utf8')
+    expect(JSON.parse(content).packages['node_modules/semver'].version).toBe('7.7.4')
+  }, 120000)
+})
+
+describe('pnpm lockfiles', async () => {
+  // Corepack selects pnpm outside of this Yarn project; fixtures pin the same version.
+  const version = (await exec(['corepack', 'pnpm'], ['--version'], temporary)).stdout.trim()
+  const pnpm = ['corepack', `pnpm@${version}`]
+  const manager = { name: 'pnpm', version }
+  const options = { command: pnpm, env, check: false }
+  const install = (cwd: string, ...args: string[]) => exec(pnpm, ['install', '--no-frozen-lockfile', ...args], cwd)
+  const read = async (path: string) => parseAllDocuments(await fs.readFile(path, 'utf8')).map(document => document.toJS()).at(-1)
+
+  async function fixture(name: string) {
+    const root = resolve(temporary, name)
+    const packageManager = `pnpm@${version}`
+    await write(resolve(root, 'package.json'), { name: 'root', private: true, packageManager })
+    await write(resolve(root, 'pnpm-workspace.yaml'), 'packages:\n  - repos/*\n  - repos/a/packages/*\n  - repos/a/external/*\n')
+    await write(resolve(root, 'repos/a/package.json'), { name: 'repo-a', private: true, packageManager })
+    await write(resolve(root, 'repos/a/pnpm-workspace.yaml'), 'packages:\n  - packages/*\n  - external/*\n')
+    await layout(root, 'workspace:*')
+    await install(root, '--lockfile-only')
+    await patch(resolve(root, 'repos/a/packages/consumer/package.json'), meta => meta.dependencies.semver = '^7.7.0')
+    await install(root, '--lockfile-only')
+    const lock = await read(resolve(root, 'pnpm-lock.yaml'))
+    expect(lock.importers['repos/a/packages/consumer'].dependencies.semver.version).toBe('7.7.4')
+    return root
+  }
+
+  it('prefers root importers, replaces links out of the repository, and prunes unreachable packages', () => {
+    const resolution = (name: string) => ({ resolution: { integrity: `sha512-${name}` } })
+    const root = [
+      'lockfileVersion: \'9.0\'',
+      'importers:',
+      '  .: { devDependencies: { is-number: { specifier: ^7.0.0, version: 7.0.0 } } }',
+      '  repos/a: {}',
+      '  repos/a/packages/consumer:',
+      '    dependencies:',
+      '      semver: { specifier: ^7.7.0, version: 7.7.4 }',
+      '      outside: { specifier: ^1.0.0, version: link:../../../b }',
+      '      peer: { specifier: workspace:*, version: link:../peer }',
+      '  repos/a/packages/peer: {}',
+      '  repos/b: {}',
+      'packages:',
+      '  semver@7.7.4: { resolution: { integrity: sha512-semver@7.7.4 } }',
+      '  is-number@7.0.0: { resolution: { integrity: sha512-is-number@7.0.0 } }',
+      'snapshots:',
+      '  semver@7.7.4: {}',
+      '  is-number@7.0.0: {}',
+    ].join('\n')
+    const old = [
+      'lockfileVersion: \'9.0\'',
+      'settings: { autoInstallPeers: false }',
+      'importers:',
+      '  packages/consumer:',
+      '    dependencies:',
+      '      semver: { specifier: ^7.7.0, version: 7.7.3 }',
+      '      outside: { specifier: ^1.0.0, version: 1.0.0(semver@7.7.3) }',
+      'packages:',
+      '  semver@7.7.3: { resolution: { integrity: sha512-semver@7.7.3 } }',
+      '  outside@1.0.0: { resolution: { integrity: sha512-outside@1.0.0 } }',
+      'snapshots:',
+      '  semver@7.7.3: {}',
+      '  outside@1.0.0(semver@7.7.3): { dependencies: { semver: 7.7.3 } }',
+    ].join('\n')
+    expect(parseYaml(seedPnpm(root, old, 'repos/a', ['', 'packages/consumer', 'packages/peer']))).toEqual({
+      lockfileVersion: '9.0',
+      settings: { autoInstallPeers: false },
+      importers: {
+        '.': {},
+        'packages/consumer': {
+          dependencies: {
+            semver: { specifier: '^7.7.0', version: '7.7.4' },
+            outside: { specifier: '^1.0.0', version: '1.0.0(semver@7.7.3)' },
+            peer: { specifier: 'workspace:*', version: 'link:../peer' },
+          },
+        },
+        'packages/peer': {},
+      },
+      packages: { 'semver@7.7.4': resolution('semver@7.7.4'), 'outside@1.0.0': resolution('outside@1.0.0'), 'semver@7.7.3': resolution('semver@7.7.3') },
+      snapshots: { 'semver@7.7.4': {}, 'outside@1.0.0(semver@7.7.3)': { dependencies: { semver: '7.7.3' } }, 'semver@7.7.3': {} },
+    })
+  })
+
+  it('maps root importers into the repository and supports standalone frozen installs', async () => {
+    const root = await fixture('pnpm')
+    const rootLock = await fs.readFile(resolve(root, 'pnpm-lock.yaml'), 'utf8')
+    const [result] = await syncLockfiles(root, manager, options)
+    expect(result).toEqual({ path: resolve(root, 'repos/a/pnpm-lock.yaml'), changed: true })
+    const content = await fs.readFile(result.path, 'utf8')
+    const lock = await read(result.path)
+    expect(Object.keys(lock.importers).sort()).toEqual(['.', 'packages/consumer', 'packages/peer'])
+    expect(lock.importers['packages/consumer'].dependencies).toMatchObject({
+      semver: { version: '7.7.4' },
+      peer: { version: 'link:../peer' },
+    })
+    expect(content).not.toContain('is-number')
+    expect(await fs.readFile(resolve(root, 'pnpm-lock.yaml'), 'utf8')).toBe(rootLock)
+    expect((await syncLockfiles(root, manager, { ...options, check: true }))[0].changed).toBe(false)
+
+    const standalone = await checkout(resolve(root, 'repos/a'), 'pnpm-standalone')
+    await exec(pnpm, ['install', '--frozen-lockfile', '--ignore-scripts'], standalone)
+    expect(await fs.readFile(resolve(standalone, 'pnpm-lock.yaml'), 'utf8')).toBe(content)
+  }, 120000)
+
+  it('synchronizes from root postinstall', async () => {
+    const root = await fixture('pnpm-postinstall')
+    await patch(resolve(root, 'package.json'), meta => meta.scripts = { postinstall: `node ${JSON.stringify(resolve(host, 'postinstall.mjs'))}` })
+    await install(root)
+    const lock = await read(resolve(root, 'repos/a/pnpm-lock.yaml'))
+    expect(lock.importers['packages/consumer'].dependencies.semver.version).toBe('7.7.4')
+  }, 120000)
 })
