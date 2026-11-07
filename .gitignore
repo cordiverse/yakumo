@@ -12,16 +12,13 @@ temp
 !.yarn/sdks
 !.yarn/versions
 
-yarn.lock
-package-lock.json
-pnpm-lock.yaml
-
 coverage/
 node_modules/
 npm-debug.log
 yarn-debug.log
 yarn-error.log
 package-lock.json
+pnpm-lock.yaml
 tsconfig.temp.json
 tsconfig.tsbuildinfo
 report.*.json
