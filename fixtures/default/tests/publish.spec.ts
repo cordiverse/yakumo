@@ -6,7 +6,7 @@ import { execFile, spawn } from 'node:child_process'
 import { promisify } from 'node:util'
 import { randomUUID } from 'node:crypto'
 import { setTimeout as sleep } from 'node:timers/promises'
-import Cli, { Input } from '@cordisjs/plugin-cli'
+import Cli, { Input } from '@cordisjs/cli'
 import Yakumo, { Context } from '../../../packages/core/src/index.ts'
 
 const execute = promisify(execFile)
@@ -147,7 +147,7 @@ describe('publish --dry-run', () => {
 
     const script = resolve(root, 'publish.mjs')
     await write(script, [
-      `import Cli, { Input } from ${JSON.stringify(import.meta.resolve('@cordisjs/plugin-cli'))}`,
+      `import Cli, { Input } from ${JSON.stringify(import.meta.resolve('@cordisjs/cli'))}`,
       `import Yakumo, { Context } from ${JSON.stringify(new URL('../../../packages/core/src/index.ts', import.meta.url).href)}`,
       'const ctx = new Context()',
       `await ctx.plugin(Cli, { name: 'yakumo' })`,

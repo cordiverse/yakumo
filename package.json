@@ -21,7 +21,6 @@
   },
   "devDependencies": {
     "@cordisjs/eslint-config": "^1.1.1",
-    "@cordisjs/plugin-cli": "^1.1.2",
     "@types/node": "^25.9.9",
     "@vitest/coverage-v8": "^4.1.12",
     "esbuild": "^0.28.2",

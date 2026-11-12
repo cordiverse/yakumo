@@ -1,5 +1,5 @@
 import { Context, Inject, Service } from 'cordis'
-import { Input } from '@cordisjs/plugin-cli'
+import { Input } from '@cordisjs/cli'
 import detect from 'detect-indent'
 import { getRegistry, spawnAsync } from './utils.ts'
 import { promises as fs, readFileSync } from 'node:fs'

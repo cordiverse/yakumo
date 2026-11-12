@@ -2,7 +2,7 @@ import { Context } from 'yakumo'
 import { load } from 'tsconfig-utils'
 import dumble from 'dumble'
 import type { BuildOptions } from 'esbuild'
-import type {} from '@cordisjs/plugin-cli'
+import type {} from '@cordisjs/cli'
 import z from 'schemastery'
 
 declare module 'yakumo' {

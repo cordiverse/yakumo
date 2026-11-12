@@ -1,5 +1,5 @@
 import { Context } from 'yakumo'
-import type {} from '@cordisjs/plugin-cli'
+import type {} from '@cordisjs/cli'
 import { startVitest, Vitest } from 'vitest/node'
 import { defaultExclude } from 'vitest/config'
 import tsconfigPaths from 'vite-tsconfig-paths'

@@ -2,7 +2,7 @@ import { afterAll, describe, expect, it } from 'vitest'
 import { promises as fs } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { tmpdir } from 'node:os'
-import Cli, { Input } from '@cordisjs/plugin-cli'
+import Cli, { Input } from '@cordisjs/cli'
 import Yakumo, { Context } from '../../../packages/core/src/index.ts'
 import { discoverWorkspaces } from '../../../packages/core/src/workspace.ts'
 

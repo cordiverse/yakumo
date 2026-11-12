@@ -14,21 +14,25 @@ for (let i = 2; i < process.argv.length; i++) {
 }
 
 const { Context } = await import('cordis')
-const { default: Loader } = await import('@cordisjs/plugin-loader')
-const { default: Include } = await import('@cordisjs/plugin-include')
-const { default: Cli } = await import('@cordisjs/plugin-cli')
+const { default: Fs } = await import('@cordisjs/fs')
+const { default: NodeFs } = await import('@cordisjs/fs-node')
+const { default: Loader } = await import('@cordisjs/loader')
+const { default: Include } = await import('@cordisjs/include')
+const { default: Cli } = await import('@cordisjs/cli')
 
 const ctx = new Context()
 ctx.baseUrl = pathToFileURL(process.cwd()).href + '/'
 
-await ctx.plugin(Loader)
-await ctx.plugin(Include, {
+await ctx.use(Fs)
+await ctx.use(NodeFs)
+await ctx.use(Loader)
+await ctx.use(Include, {
   path: './yakumo.yml',
   initial: [
     { name: 'yakumo' },
   ],
 })
-await ctx.plugin(Cli, {
+await ctx.use(Cli, {
   name: 'yakumo',
 })
 await ctx.cli.executeArgv()

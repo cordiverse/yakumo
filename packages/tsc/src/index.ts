@@ -1,5 +1,5 @@
 import * as fs from 'node:fs/promises'
-import type {} from '@cordisjs/plugin-cli'
+import type {} from '@cordisjs/cli'
 import { join } from 'path'
 import { Context, PackageJson } from 'yakumo'
 import { compile, load, TsConfig } from 'tsconfig-utils'

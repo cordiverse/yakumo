@@ -1,7 +1,7 @@
 {
   "name": "yakumo-mocha",
   "description": "Mocha support for Yakumo",
-  "version": "3.0.3",
+  "version": "3.1.1",
   "type": "module",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
@@ -34,12 +34,12 @@
   },
   "peerDependencies": {
     "mocha": "^11",
-    "yakumo": "^3.3.0"
+    "yakumo": "^3.4.1"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",
     "mocha": "^11.8.0",
-    "yakumo": "^3.3.0"
+    "yakumo": "^3.4.1"
   },
   "dependencies": {
     "globby": "^14.1.0",

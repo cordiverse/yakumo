@@ -47,6 +47,19 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@cordisjs/cli@npm:^4.0.0":
+  version: 4.0.0
+  resolution: "@cordisjs/cli@npm:4.0.0"
+  dependencies:
+    cosmokit: "npm:^1.8.1"
+    kleur: "npm:^4.1.5"
+  peerDependencies:
+    "@cordisjs/loader": ^1.0.0-rc.10
+    cordis: ^4.0.0-rc.13
+  checksum: 10c0/9b3bf9af2538c5c44fbcd1a459f4e0cca949bae406190b6d29b1f30b171a40ae2b1c55762f8f749e942dc91e61ad41f84939d0a8befd4f2f71ba43a47f3cdad0
+  languageName: node
+  linkType: hard
+
 "@cordisjs/eslint-config@npm:^1.1.1":
   version: 1.1.1
   resolution: "@cordisjs/eslint-config@npm:1.1.1"
@@ -63,44 +76,56 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@cordisjs/plugin-cli@npm:^1.1.2":
-  version: 1.1.2
-  resolution: "@cordisjs/plugin-cli@npm:1.1.2"
+"@cordisjs/fs-node@npm:^0.1.0":
+  version: 0.1.0
+  resolution: "@cordisjs/fs-node@npm:0.1.0"
   dependencies:
+    chokidar: "npm:^4.0.3"
     cosmokit: "npm:^1.8.1"
-    kleur: "npm:^4.1.5"
+    picomatch: "npm:^4.0.3"
   peerDependencies:
-    "@cordisjs/plugin-loader": ^1.0.0-rc.4
-    cordis: ^4.0.0-rc.5
-  checksum: 10c0/d774521fdd5f1e79b71543ad709fc391dfa29af9233970790464f2342cf1874a2cf749011d0617fc02668f7d80243007576d143b90676c9f58e8add82955c88d
+    "@cordisjs/fs": ^2.0.0-rc.0
+    cordis: ^4.0.0-rc.13
+  checksum: 10c0/8b620ac87fc25e439376821f0feec3f9af86a99ba287da7c711c03d87f6763daa71ff688227a60ef92a8aefeff2350baa69dbb8b24531e42acb7bd3a3ab4e436
   languageName: node
   linkType: hard
 
-"@cordisjs/plugin-include@npm:^1.2.0":
-  version: 1.2.0
-  resolution: "@cordisjs/plugin-include@npm:1.2.0"
+"@cordisjs/fs@npm:^2.0.0-rc.0":
+  version: 2.0.0-rc.0
+  resolution: "@cordisjs/fs@npm:2.0.0-rc.0"
+  dependencies:
+    cosmokit: "npm:^1.8.1"
+  peerDependencies:
+    cordis: ^4.0.0-rc.13
+  checksum: 10c0/2ab5e043092ad9305cbf5746ffd7db5973d8057d00b5a3ad7fd5625d6def8947fcb62198092fc4706327d074752812589136a41037cdc41e813e340ef5b010f3
+  languageName: node
+  linkType: hard
+
+"@cordisjs/include@npm:^2.0.0-rc.0":
+  version: 2.0.0-rc.0
+  resolution: "@cordisjs/include@npm:2.0.0-rc.0"
   dependencies:
     cosmokit: "npm:^1.8.1"
     yaml: "npm:^2.9.1"
   peerDependencies:
-    "@cordisjs/plugin-loader": ^1.0.0-rc.9
-    cordis: ^4.0.0-rc.12
-  checksum: 10c0/aa0e44ef0011fe8ee575e7f4109cd3202687fc11a8700d83c0ba5cb8ef11788ab2f4d23b1355e17befecabda5fd3dc9495fd362bc21f5318b8f8bf1ac801b5dc
+    "@cordisjs/loader": ^1.0.0-rc.10
+    cordis: ^4.0.0-rc.13
+  checksum: 10c0/b37c72cbaf3c098c70bbcbe8b8f01fbed0ec0bfa14ee81a2aafae04f5ab2cc98f0d59b71f65caa891c67b7e676b7a2ec6d778a0e2eb74c849e54ca8f25d20220
   languageName: node
   linkType: hard
 
-"@cordisjs/plugin-loader@npm:^1.0.0-rc.9":
-  version: 1.0.0-rc.9
-  resolution: "@cordisjs/plugin-loader@npm:1.0.0-rc.9"
+"@cordisjs/loader@npm:^1.0.0-rc.10":
+  version: 1.0.0-rc.10
+  resolution: "@cordisjs/loader@npm:1.0.0-rc.10"
   dependencies:
     cosmokit: "npm:^1.8.1"
   peerDependencies:
-    cordis: ^4.0.0-rc.12
+    cordis: ^4.0.0-rc.13
     node-addon-require-builtin: ^0.1.0
   peerDependenciesMeta:
     node-addon-require-builtin:
       optional: true
-  checksum: 10c0/d683c254c7d8cac928273e8166bde6fc655a7ba186d1df4207c1e516d7081e7537f61fb6fb5998220e3e4973d67d414eea3cc88b7c183292fe24a40d6f72ffd6
+  checksum: 10c0/d31e4efcdfe9e2c78de094c62952b5a2f0ee1d23456d0dcc40b5d0c13e0ef75a00062471c0a4c33bffce993dbbfe4c70443f899272bf937241b6de3e9491de67
   languageName: node
   linkType: hard
 
@@ -810,7 +835,6 @@ __metadata:
   resolution: "@root/yakumo@workspace:."
   dependencies:
     "@cordisjs/eslint-config": "npm:^1.1.1"
-    "@cordisjs/plugin-cli": "npm:^1.1.2"
     "@types/node": "npm:^25.9.9"
     "@vitest/coverage-v8": "npm:^4.1.12"
     esbuild: "npm:^0.28.2"
@@ -1576,7 +1600,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"chokidar@npm:^4.0.1":
+"chokidar@npm:^4.0.1, chokidar@npm:^4.0.3":
   version: 4.0.3
   resolution: "chokidar@npm:4.0.3"
   dependencies:
@@ -1649,23 +1673,29 @@ __metadata:
   languageName: node
   linkType: hard
 
-"cordis@npm:^4.0.0-rc.12":
-  version: 4.0.0-rc.12
-  resolution: "cordis@npm:4.0.0-rc.12"
+"cordis@npm:^4.0.0-rc.13":
+  version: 4.0.0-rc.13
+  resolution: "cordis@npm:4.0.0-rc.13"
   dependencies:
     "@standard-schema/spec": "npm:^1.1.0"
     cosmokit: "npm:^1.8.1"
   peerDependencies:
-    "@cordisjs/plugin-include": ^1.2.0
-    "@cordisjs/plugin-loader": ^1.0.0-rc.9
+    "@cordisjs/fs": ^2.0.0-rc.0
+    "@cordisjs/fs-node": ^0.1.0
+    "@cordisjs/include": ^2.0.0-rc.0
+    "@cordisjs/loader": ^1.0.0-rc.10
   peerDependenciesMeta:
-    "@cordisjs/plugin-include":
+    "@cordisjs/fs":
       optional: true
-    "@cordisjs/plugin-loader":
+    "@cordisjs/fs-node":
+      optional: true
+    "@cordisjs/include":
+      optional: true
+    "@cordisjs/loader":
       optional: true
   bin:
     cordis: bin.js
-  checksum: 10c0/1728574eec1aca40cbcf1187a2bafeccd6b845d2f2d2fc3959e6bc68f114cf0193ab1546cb8f96177e69241e333a2f07d059eabc08d17252c678b7152851f69f
+  checksum: 10c0/19b801353284838709ede6588537366fcaeb4854634a4dc5fda2132b7e47cdf2fb802e5f27195fd914ae683c98895a308557cbe356f46540126a031bd9733600
   languageName: node
   linkType: hard
 
@@ -5509,11 +5539,11 @@ __metadata:
     schemastery: "npm:^3.18.0"
     tsconfig-utils: "npm:^4.2.0"
     typescript: "npm:^5.9.3"
-    yakumo: "npm:^3.2.1"
+    yakumo: "npm:^3.4.0"
   peerDependencies:
     esbuild: "*"
     typescript: "*"
-    yakumo: ^3.2.1
+    yakumo: ^3.4.0
   languageName: unknown
   linkType: soft
 
@@ -5524,11 +5554,11 @@ __metadata:
     "@types/mocha": "npm:^10.0.10"
     globby: "npm:^14.1.0"
     mocha: "npm:^11.8.0"
-    yakumo: "npm:^3.2.1"
+    yakumo: "npm:^3.4.0"
     yargs-unparser: "npm:^2.0.0"
   peerDependencies:
     mocha: ^11
-    yakumo: ^3.2.1
+    yakumo: ^3.4.0
   languageName: unknown
   linkType: soft
 
@@ -5540,10 +5570,10 @@ __metadata:
     dtsc: "npm:^3.1.0"
     tsconfig-utils: "npm:^4.2.0"
     typescript: "npm:^5.9.3"
-    yakumo: "npm:^3.2.1"
+    yakumo: "npm:^3.4.0"
   peerDependencies:
     typescript: "*"
-    yakumo: ^3.2.1
+    yakumo: ^3.4.0
   languageName: unknown
   linkType: soft
 
@@ -5552,30 +5582,32 @@ __metadata:
   resolution: "yakumo-vitest@workspace:packages/vitest"
   dependencies:
     globby: "npm:^14.1.0"
-    vite: "npm:^7.3.7"
+    vite: "npm:^7.3.8"
     vite-tsconfig-paths: "npm:^6.1.1"
     vitest: "npm:^4.1.12"
-    yakumo: "npm:^3.2.1"
+    yakumo: "npm:^3.4.0"
   peerDependencies:
     vite: ^6 || ^7
     vitest: ^4
-    yakumo: ^3.2.1
+    yakumo: ^3.4.0
   languageName: unknown
   linkType: soft
 
-"yakumo@npm:^3.2.1, yakumo@workspace:packages/core":
+"yakumo@npm:^3.4.0, yakumo@workspace:packages/core":
   version: 0.0.0-use.local
   resolution: "yakumo@workspace:packages/core"
   dependencies:
-    "@cordisjs/plugin-cli": "npm:^1.1.2"
-    "@cordisjs/plugin-include": "npm:^1.2.0"
-    "@cordisjs/plugin-loader": "npm:^1.0.0-rc.9"
+    "@cordisjs/cli": "npm:^4.0.0"
+    "@cordisjs/fs": "npm:^2.0.0-rc.0"
+    "@cordisjs/fs-node": "npm:^0.1.0"
+    "@cordisjs/include": "npm:^2.0.0-rc.0"
+    "@cordisjs/loader": "npm:^1.0.0-rc.10"
     "@npm/types": "npm:^2.1.0"
     "@types/picomatch": "npm:^3.0.2"
     "@types/prompts": "npm:^2.4.9"
     "@types/yargs-parser": "npm:^21.0.3"
     "@yarnpkg/parsers": "npm:^3.1.0"
-    cordis: "npm:^4.0.0-rc.12"
+    cordis: "npm:^4.0.0-rc.13"
     cosmokit: "npm:^1.8.1"
     detect-indent: "npm:^7.0.2"
     execa: "npm:^9.6.1"

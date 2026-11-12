@@ -1,5 +1,5 @@
 import { Context } from 'yakumo'
-import type {} from '@cordisjs/plugin-cli'
+import type {} from '@cordisjs/cli'
 import Mocha from 'mocha'
 import { globby } from 'globby'
 
