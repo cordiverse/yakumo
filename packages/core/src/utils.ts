@@ -1,9 +1,9 @@
 import ora from 'ora'
 import prompts from 'prompts'
-import { execFile, spawn, SpawnOptions } from 'node:child_process'
-import { promisify } from 'node:util'
+import { spawn, SpawnOptions } from 'node:child_process'
 import semver from 'semver'
 import type { Manifest } from '@npm/types'
+import { execute } from './execute.ts'
 import { isBerry } from './workspace.ts'
 import type { Manager } from './index.ts'
 
@@ -34,7 +34,7 @@ export function spawnAsync(args: string[], options: SpawnOptions = {}) {
 /** Read the registry URL from the configuration of a package manager in a directory. */
 export async function getRegistry(manager: Manager, cwd?: string) {
   const key = isBerry(manager) ? 'npmRegistryServer' : 'registry'
-  const { stdout } = await promisify(execFile)(manager.name, ['config', 'get', key], { cwd })
+  const { stdout } = await execute([manager.name, 'config', 'get', key], { cwd })
   const registry = stdout.trim()
   if (!URL.canParse(registry)) throw new Error(`Invalid registry from ${manager.name} config get ${key}: ${registry}`)
   // Package names resolve relative to the registry URL, which therefore ends with a slash.

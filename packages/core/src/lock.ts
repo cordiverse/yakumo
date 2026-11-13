@@ -1,10 +1,9 @@
 import { promises as fs } from 'node:fs'
 import { dirname, relative, resolve } from 'node:path'
 import { tmpdir } from 'node:os'
-import { promisify } from 'node:util'
-import { execFile } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import { globby } from 'globby'
+import { execute } from './execute.ts'
 import { detectManager, discoverOptions, discoverWorkspaces, inside, readOptional, WorkspaceTree } from './workspace.ts'
 import { Adapter, exists, UnsupportedError } from './lockfiles/shared.ts'
 import { yarn } from './lockfiles/yarn.ts'
@@ -17,7 +16,6 @@ export { seedYarn } from './lockfiles/yarn.ts'
 export { seedNpm } from './lockfiles/npm.ts'
 export { seedPnpm } from './lockfiles/pnpm.ts'
 
-const execute = promisify(execFile)
 const adapters: Record<string, Adapter> = { yarn, npm, pnpm }
 
 export interface LockOptions {
@@ -108,7 +106,7 @@ async function standaloneTree(adapter: Adapter, tree: WorkspaceTree, path: strin
   }
   // Ignored nested clones are absent from a standalone checkout. Do not export their manifests.
   if (await exists(resolve(root, '.git'))) {
-    const { stdout } = await execute('git', ['ls-files', '--cached', '--others', '--exclude-standard', '-z'], { cwd: root, maxBuffer: 16 * 1024 * 1024 })
+    const { stdout } = await execute(['git', 'ls-files', '--cached', '--others', '--exclude-standard', '-z'], { cwd: root, maxBuffer: 16 * 1024 * 1024 })
     const files = new Set(stdout.split('\0'))
     for (const key of Object.keys(standalone.packages)) {
       const manifest = key ? key.slice(1) + '/package.json' : 'package.json'
@@ -123,7 +121,7 @@ async function standaloneTree(adapter: Adapter, tree: WorkspaceTree, path: strin
 }
 
 async function version(command: string[], cwd: string, env: NodeJS.ProcessEnv) {
-  const { stdout } = await execute(command[0], [...command.slice(1), '--version'], { cwd, env })
+  const { stdout } = await execute([...command, '--version'], { cwd, env })
   return stdout.trim()
 }
 
@@ -196,7 +194,7 @@ export async function syncLockfiles(root: string, manager?: Manager, options: Lo
       const before = await readOptional(target)
       await fs.writeFile(resolve(directory, filename), adapter.seed(rootLock, before, path.slice(1), projects))
       try {
-        await execute(targetCommand[0], [...targetCommand.slice(1), ...adapter.args], {
+        await execute([...targetCommand, ...adapter.args], {
           cwd: directory,
           env: { ...env, ...adapter.env?.(directory) },
           maxBuffer: 16 * 1024 * 1024,
