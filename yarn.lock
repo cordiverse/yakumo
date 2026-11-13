@@ -5425,11 +5425,11 @@ __metadata:
     schemastery: "npm:^3.18.0"
     tsconfig-utils: "npm:^4.2.0"
     typescript: "npm:^5.9.3"
-    yakumo: "npm:^3.4.1"
+    yakumo: "npm:^3.4.2"
   peerDependencies:
     esbuild: "*"
     typescript: "*"
-    yakumo: ^3.4.1
+    yakumo: ^3.4.2
   languageName: unknown
   linkType: soft
 
@@ -5440,11 +5440,11 @@ __metadata:
     "@types/mocha": "npm:^10.0.10"
     globby: "npm:^14.1.0"
     mocha: "npm:^11.8.0"
-    yakumo: "npm:^3.4.1"
+    yakumo: "npm:^3.4.2"
     yargs-unparser: "npm:^2.0.0"
   peerDependencies:
     mocha: ^11
-    yakumo: ^3.4.1
+    yakumo: ^3.4.2
   languageName: unknown
   linkType: soft
 
@@ -5456,10 +5456,10 @@ __metadata:
     dtsc: "npm:^3.1.0"
     tsconfig-utils: "npm:^4.2.0"
     typescript: "npm:^5.9.3"
-    yakumo: "npm:^3.4.1"
+    yakumo: "npm:^3.4.2"
   peerDependencies:
     typescript: "*"
-    yakumo: ^3.4.1
+    yakumo: ^3.4.2
   languageName: unknown
   linkType: soft
 
@@ -5471,15 +5471,15 @@ __metadata:
     vite: "npm:^7.3.8"
     vite-tsconfig-paths: "npm:^6.1.1"
     vitest: "npm:^4.1.12"
-    yakumo: "npm:^3.4.1"
+    yakumo: "npm:^3.4.2"
   peerDependencies:
     vite: ^6 || ^7
     vitest: ^4
-    yakumo: ^3.4.1
+    yakumo: ^3.4.2
   languageName: unknown
   linkType: soft
 
-"yakumo@npm:^3.4.1, yakumo@workspace:packages/core":
+"yakumo@npm:^3.4.2, yakumo@workspace:packages/core":
   version: 0.0.0-use.local
   resolution: "yakumo@workspace:packages/core"
   dependencies:

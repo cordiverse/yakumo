@@ -24,7 +24,7 @@ jobs:
       - name: Enable Corepack
         run: corepack enable
       - name: Install
-        run: yarn --no-immutable
+        run: yarn
       - name: Lint
         run: yarn lint
 
@@ -47,7 +47,7 @@ jobs:
       - name: Enable Corepack
         run: corepack enable
       - name: Install
-        run: yarn --no-immutable
+        run: yarn
       - name: Build
         run: yarn build
       - name: Publish
@@ -65,7 +65,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node-version: [24, 26]
+        node-version: [22, 24, 26]
 
     steps:
       - name: Check out
@@ -79,6 +79,6 @@ jobs:
       - name: Enable Corepack
         run: corepack enable
       - name: Install
-        run: yarn --no-immutable
+        run: yarn
       - name: Unit Test
         run: yarn test:json
