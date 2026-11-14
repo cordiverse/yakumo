@@ -98,10 +98,12 @@ export function apply(ctx: Context) {
     .option('--registry [registry]', 'npm registry URL')
     .option('--otp [otp]', 'npm OTP code')
     .option('--dry-run', 'Check versions and run the publish command of the package manager without uploading')
+    .option('--fail-if-empty', 'Exit with a non-zero code when no package is published')
     .action(async ({ args, options }) => {
       await ctx.yakumo.initialize()
       const { manager } = ctx.yakumo
       const dryRun = !!options.dryRun
+      const failIfEmpty = !!options.failIfEmpty
       if (dryRun && manager.name === 'yarn' && lt(manager.version, '4.10.0')) {
         throw new Error(`publish --dry-run requires Yarn 4.10 or later, found ${manager.version}`)
       }
@@ -245,8 +247,14 @@ export function apply(ctx: Context) {
 
       const skippedText = skipped ? `, ${skipped} skipped` : ''
       const publishedText = dryRun ? `Dry run: ${published} packages would be published` : `Published ${published} packages`
+      // Opt-in: a push-to-main workflow publishes on every commit, where nothing to
+      // publish is normal. CI that expects a release can pass --fail-if-empty so a
+      // forgotten version bump shows up as a failure instead of a green run.
+      const empty = failIfEmpty && results.length > 0 && published === 0
       if (failed) {
         spinner.fail(`${publishedText}, ${failed} failed${skippedText}.`)
+      } else if (empty) {
+        spinner.fail(`${publishedText}${skippedText}.`)
       } else {
         spinner.succeed(`${publishedText}${skippedText}.`)
       }
@@ -281,5 +289,6 @@ export function apply(ctx: Context) {
       }
 
       if (failed) process.exit(Math.min(failed, 255))
+      if (empty) process.exit(1)
     })
 }

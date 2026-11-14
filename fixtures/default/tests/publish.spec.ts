@@ -170,3 +170,37 @@ describe('publish --dry-run', () => {
     await expect(publish(root, 'publish --dry-run')).rejects.toThrow('requires Yarn 4.10 or later')
   })
 })
+
+describe('publish exit code', () => {
+  it('fails with --fail-if-empty when every selected package is already published', async () => {
+    const root = await fixture('npm-skip', `npm@${await version('npm')}`, ['packages/*'])
+    const manifest = JSON.parse(await fs.readFile(resolve(root, 'packages/foo/package.json'), 'utf8'))
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      if ((!init?.method || init.method === 'GET') && String(input).includes(manifest.name)) {
+        return new Response(JSON.stringify({ versions: { [manifest.version]: {} } }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        })
+      }
+      return fetch(input, init)
+    })
+    await expect(publish(root, 'publish --fail-if-empty')).rejects.toThrow('process.exit(1)')
+    expect(await fs.readFile(summary, 'utf8')).toContain(`| \`${manifest.name}\` | \`${manifest.version}\` | :fast_forward: Skipped |`)
+  }, 120000)
+
+  it('does not fail without the flag when every package is already published', async () => {
+    const root = await fixture('npm-skip-default', `npm@${await version('npm')}`, ['packages/*'])
+    const manifest = JSON.parse(await fs.readFile(resolve(root, 'packages/foo/package.json'), 'utf8'))
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      if ((!init?.method || init.method === 'GET') && String(input).includes(manifest.name)) {
+        return new Response(JSON.stringify({ versions: { [manifest.version]: {} } }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        })
+      }
+      return fetch(input, init)
+    })
+    const result = await publish(root, 'publish')
+    expect(result.summary).toContain(`| \`${manifest.name}\` | \`${manifest.version}\` | :fast_forward: Skipped |`)
+  }, 120000)
+})
