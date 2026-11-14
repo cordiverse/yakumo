@@ -35,6 +35,12 @@ await ctx.use(Include, {
 await ctx.use(Cli, {
   name: 'yakumo',
 })
+const index = process.argv.indexOf('--')
+if (index >= 0) {
+  const { kScriptArgs } = await import('./utils.ts')
+  ;(globalThis as any)[kScriptArgs] = process.argv.splice(index + 1)
+  process.argv.splice(index, 1)
+}
 await ctx.cli.executeArgv()
 
 export {}

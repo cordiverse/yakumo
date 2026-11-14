@@ -1,15 +1,15 @@
 import { Context } from 'cordis'
-import { spawnAsync } from '../index.js'
+import { kScriptArgs, spawnAsync } from '../index.js'
 
 export const inject = ['yakumo', 'cli']
 
 export function apply(ctx: Context) {
   ctx.cli
     .command('run [...packages]', 'Run scripts in packages')
-    .action(async ({ args, options }) => {
+    .action(async ({ args }) => {
       await ctx.yakumo.initialize()
       const { cwd } = ctx.yakumo
-      const [command, ...rest] = options['--'] as string[]
+      const [command, ...rest] = ((globalThis as any)[kScriptArgs] as string[] | undefined) ?? []
       if (!command) throw new Error('Missing command')
       const paths = ctx.yakumo.locate(args, {
         filter: () => true,

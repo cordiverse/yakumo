@@ -7,6 +7,9 @@ import { execute } from './execute.ts'
 import { isBerry } from './workspace.ts'
 import type { Manager } from './index.ts'
 
+// Raw arguments after `--`, which the CLI parser does not keep.
+export const kScriptArgs = Symbol.for('yakumo.scriptArgs')
+
 export async function confirm(message: string) {
   const { value } = await prompts({
     name: 'value',
