@@ -14,5 +14,8 @@
     "jsx-import-source": {
       "optional": true
     }
+  },
+  "scripts": {
+    "echo": "node -e \"process.exit(process.argv[1] === 'ok' ? 0 : 1)\""
   }
 }
