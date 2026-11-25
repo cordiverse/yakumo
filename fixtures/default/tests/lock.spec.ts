@@ -314,12 +314,12 @@ describe('Yarn lockfiles', () => {
     await ctx.plugin(Yakumo)
     ctx.yakumo.cwd = root
     try {
-      await ctx.cli.execute(new Input.String('postinstall'))
+      await ctx.std.cli.execute(new Input.String('postinstall'))
       const target = resolve(root, 'repos/a/yarn.lock')
       const before = await fs.readFile(target, 'utf8')
       await fs.writeFile(target, '# drift\n' + before)
-      await expect(ctx.cli.execute(new Input.String('lock --immutable'))).rejects.toThrow('Outdated lockfiles')
-      await ctx.cli.execute(new Input.String('lock repos/a'))
+      await expect(ctx.std.cli.execute(new Input.String('lock --immutable'))).rejects.toThrow('Outdated lockfiles')
+      await ctx.std.cli.execute(new Input.String('lock repos/a'))
       expect(await fs.readFile(target, 'utf8')).toBe(before)
     } finally {
       await ctx.fiber.dispose()

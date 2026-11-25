@@ -87,10 +87,10 @@ async function serial<S, T>(list: S[], fn: (item: S) => Promise<T>) {
   for (const item of list) await fn(item)
 }
 
-export const inject = ['yakumo', 'cli']
+export const inject = ['yakumo', 'std:cli']
 
 export function apply(ctx: Context) {
-  ctx.cli
+  ctx.std.cli
     .command('publish [...packages]', 'Publish packages to npm')
     .option('--debug', 'Verbose output')
     .option('--tag [tag]', 'npm dist-tag')

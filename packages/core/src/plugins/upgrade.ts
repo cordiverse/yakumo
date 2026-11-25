@@ -16,10 +16,10 @@ declare module '../index.js' {
   }
 }
 
-export const inject = ['yakumo', 'cli']
+export const inject = ['yakumo', 'std:cli']
 
 export function apply(ctx: Context, config: Config = {}) {
-  ctx.cli
+  ctx.std.cli
     .command('upgrade [...packages]', 'Upgrade dependencies')
     .option('--next', 'Upgrade to incompatible versions')
     .action(async ({ args, options }) => {

@@ -3,7 +3,7 @@ import { Context } from 'cordis'
 import { globby } from 'globby'
 import { hyphenate } from 'cosmokit'
 
-export const inject = ['yakumo', 'cli']
+export const inject = ['yakumo', 'std:cli']
 
 /** Convert options dict back to CLI args (replaces yargs-unparser) */
 function unparseOptions(options: Record<string, any>): string[] {
@@ -27,7 +27,7 @@ function unparseOptions(options: Record<string, any>): string[] {
 }
 
 export function apply(ctx: Context) {
-  ctx.cli
+  ctx.std.cli
     .command('test [...packages]', 'Run tests in packages')
     .action(async ({ args, options }) => {
       await ctx.yakumo.initialize()

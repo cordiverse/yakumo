@@ -8,7 +8,7 @@ interface Node {
   tree: Dict<Node>
 }
 
-export const inject = ['yakumo', 'cli']
+export const inject = ['yakumo', 'std:cli']
 
 export function apply(ctx: Context) {
   function createNode(path: string): Node {
@@ -36,7 +36,7 @@ export function apply(ctx: Context) {
     })
   }
 
-  ctx.cli
+  ctx.std.cli
     .command('list', 'List all packages')
     .action(async () => {
       await ctx.yakumo.initialize()

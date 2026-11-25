@@ -3,10 +3,10 @@ import type {} from '@cordisjs/cli'
 import Mocha from 'mocha'
 import { globby } from 'globby'
 
-export const inject = ['yakumo', 'cli']
+export const inject = ['yakumo', 'std:cli']
 
 export function apply(ctx: Context) {
-  ctx.cli
+  ctx.std.cli
     .command('mocha [...packages]', 'Run tests with mocha', { unknownOption: 'allow' })
     .option('-t, --timeout [timeout:integer]', 'Test-case timeout in milliseconds')
     .option('-s, --slow [slow:integer]', '"Slow" test threshold in milliseconds')

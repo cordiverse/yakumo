@@ -7,7 +7,7 @@ import { globby } from 'globby'
 import { existsSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 
-export const inject = ['yakumo', 'cli']
+export const inject = ['yakumo', 'std:cli']
 
 const EXCLUDE = [...defaultExclude, '**/.claude/**']
 
@@ -33,7 +33,7 @@ function findConfigRoot(file: string, floor: string): string {
 }
 
 export function apply(ctx: Context) {
-  ctx.cli
+  ctx.std.cli
     .command('vitest [...packages]', 'Run tests with vitest')
     .option('-w, --watch', 'Watch mode')
     .option('-u, --update', 'Update snapshots')

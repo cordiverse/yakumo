@@ -1,7 +1,7 @@
 import { Context } from 'cordis'
 import { LockOptions, supportsLock } from '../lock.ts'
 
-export const inject = ['yakumo', 'cli']
+export const inject = ['yakumo', 'std:cli']
 
 export function apply(ctx: Context) {
   async function lock(options: LockOptions = {}) {
@@ -12,7 +12,7 @@ export function apply(ctx: Context) {
     console.log(`${done} repository lockfiles ${options.check ? 'checked' : 'synchronized'}${skipped ? `, ${skipped} skipped` : ''}`)
   }
 
-  ctx.cli.command('lock [...repositories]', 'Synchronize repository lockfiles')
+  ctx.std.cli.command('lock [...repositories]', 'Synchronize repository lockfiles')
     .option('--immutable', 'Fail if any lockfile is outdated instead of updating it')
     .option('--strict', 'Fail on repositories that cannot be exported instead of skipping them')
     .action(async ({ args, options }) => {
@@ -23,7 +23,7 @@ export function apply(ctx: Context) {
       })
     })
 
-  ctx.cli.command('postinstall', 'Run post-installation tasks')
+  ctx.std.cli.command('postinstall', 'Run post-installation tasks')
     .action(async () => {
       await ctx.yakumo.initialize()
       if (!supportsLock(ctx.yakumo.manager)) return

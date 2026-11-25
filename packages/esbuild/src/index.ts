@@ -11,7 +11,7 @@ declare module 'yakumo' {
   }
 }
 
-export const inject = ['yakumo', 'cli']
+export const inject = ['yakumo', 'std:cli']
 
 export interface Config {
   minify: boolean
@@ -22,7 +22,7 @@ export const Config: z<Config> = z.object({
 })
 
 export function apply(ctx: Context, config: Config) {
-  ctx.cli
+  ctx.std.cli
     .command('esbuild [...packages]', 'Build packages with esbuild')
     .option('--minify', 'Minify output')
     .action(async ({ args, options }) => {

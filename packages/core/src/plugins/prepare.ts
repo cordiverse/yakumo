@@ -3,10 +3,10 @@ import picomatch from 'picomatch'
 import { globby } from 'globby'
 import { normalizePatterns } from '../workspace.ts'
 
-export const inject = ['yakumo', 'cli']
+export const inject = ['yakumo', 'std:cli']
 
 export function apply(ctx: Context) {
-  ctx.cli
+  ctx.std.cli
     .command('prepare [...packages]', 'Prepare workspace configuration')
     .option('-c, --clean', 'Clean removed workspaces')
     .action(async ({ options }) => {

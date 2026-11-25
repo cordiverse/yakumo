@@ -81,7 +81,7 @@ export namespace Yakumo {
   }
 }
 
-@Inject('cli')
+@Inject('std:cli')
 export default class Yakumo extends Service {
   cwd: string
   manager!: Manager
@@ -95,7 +95,7 @@ export default class Yakumo extends Service {
     super(ctx, 'yakumo')
     this.cwd = cwd
 
-    ctx.cli
+    ctx.std.cli
       .command('', 'Manage complex workspaces with ease')
       .option('-v, --version', 'Show version')
       .action(({ options }) => {
@@ -108,12 +108,12 @@ export default class Yakumo extends Service {
 
     // Register pipeline commands (command aliases that run multiple sub-commands)
     for (const name in config.pipeline || {}) {
-      ctx.cli
+      ctx.std.cli
         .command(`${name} [...args]`, { unknownOption: 'allow' })
         .action(async ({ args, options }) => {
           const tasks = config.pipeline![name]
           for (const task of tasks) {
-            const output = await ctx.cli.execute(new Input.String(task), args, options)
+            const output = await ctx.std.cli.execute(new Input.String(task), args, options)
             if (output) console.log(output)
           }
         })

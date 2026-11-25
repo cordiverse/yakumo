@@ -160,10 +160,10 @@ class Graph {
   }
 }
 
-export const inject = ['yakumo', 'cli']
+export const inject = ['yakumo', 'std:cli']
 
 export function apply(ctx: Context) {
-  ctx.cli
+  ctx.std.cli
     .command('version [...packages]', 'Bump package versions')
     .option('-r, --recursive', 'Bump dependents recursively')
     .option('-v, --version [version]', 'Set exact version')

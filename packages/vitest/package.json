@@ -30,7 +30,7 @@
   "cordis": {
     "inject": [
       "yakumo",
-      "cli"
+      "std:cli"
     ]
   },
   "peerDependencies": {

@@ -72,10 +72,10 @@ async function bundleNodes(nodes: Node[]) {
   }
 }
 
-export const inject = ['yakumo', 'cli']
+export const inject = ['yakumo', 'std:cli']
 
 export function apply(ctx: Context) {
-  ctx.cli
+  ctx.std.cli
     .command('tsc [...packages]', 'Build packages with tsc')
     .option('--clean', 'Clean build files')
     .action(async ({ args, options }) => {

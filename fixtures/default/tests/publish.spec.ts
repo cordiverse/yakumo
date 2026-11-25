@@ -55,7 +55,7 @@ async function publish(root: string, command: string) {
   })
   await fs.rm(summary, { force: true })
   try {
-    await ctx.cli.execute(new Input.String(command))
+    await ctx.std.cli.execute(new Input.String(command))
   } finally {
     await ctx.fiber.dispose()
   }
@@ -153,7 +153,7 @@ describe('publish --dry-run', () => {
       `await ctx.plugin(Cli, { name: 'yakumo' })`,
       'await ctx.plugin(Yakumo)',
       `ctx.yakumo.cwd = ${JSON.stringify(root)}`,
-      `await ctx.cli.execute(new Input.String('publish bar --dry-run'))`,
+      `await ctx.std.cli.execute(new Input.String('publish bar --dry-run'))`,
     ].join('\n'))
     // A separate process group receives SIGINT as a terminal does on Ctrl+C.
     const child = spawn(process.execPath, ['--import', 'tsx', script], { cwd: process.cwd(), env, detached: true, stdio: 'ignore' })

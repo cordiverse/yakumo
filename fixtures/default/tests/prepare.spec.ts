@@ -26,7 +26,7 @@ async function prepare(root: string, runs: number, command = 'prepare') {
   const results: string[][] = []
   try {
     for (let i = 0; i < runs; i++) {
-      await ctx.cli.execute(new Input.String(command))
+      await ctx.std.cli.execute(new Input.String(command))
       results.push(JSON.parse(await fs.readFile(resolve(root, 'package.json'), 'utf8')).workspaces)
     }
   } finally {

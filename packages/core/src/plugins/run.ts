@@ -1,10 +1,10 @@
 import { Context } from 'cordis'
 import { spawnAsync } from '../index.js'
 
-export const inject = ['yakumo', 'cli']
+export const inject = ['yakumo', 'std:cli']
 
 export function apply(ctx: Context) {
-  ctx.cli
+  ctx.std.cli
     .command('run [...packages]', 'Run scripts in packages')
     .action(async ({ args, options }) => {
       await ctx.yakumo.initialize()
